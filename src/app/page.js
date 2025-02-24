@@ -161,52 +161,54 @@ const Home = () => {
       {/* Hero Section */}
       <section
         id="about"
-        className="h-screen flex flex-col justify-center items-center text-center px-6 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white relative"
+        className="min-h-screen flex flex-col justify-center items-center text-center px-6 pt-16 sm:pt-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white relative"
       >
         <div className="absolute top-0 left-0 w-full h-full bg-[url('/background-pattern.svg')] opacity-10"></div>
-        <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-gray-200 shadow-xl mb-6">
+        <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden mb-6">
+          <div className="absolute inset-0 rounded-full border-4 border-gray-500 shadow-lg"></div>
           <img
             src="/dp.jpeg"
             alt="Profile Picture"
-            className="mx-auto rounded-full border-4 border-gray-500 shadow-lg w-full h-full object-cover"
+            className="w-full h-full object-cover rounded-full"
           />
         </div>
         <h1 className="md:text-6xl text-4xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-blue-500 drop-shadow-lg text-center">
           Trishnangshu Goswami
         </h1>
-        <p className="text-2xl max-w-3xl text-gray-300 mb-6 leading-relaxed text-center">
+        <p className="text-xl sm:text-2xl max-w-3xl text-gray-300 mb-6 leading-relaxed text-center">
           Tech maverick, with no degree tag. Engineering dreams by avoiding the
           drag. Software Engineer @ Delta Exchange | Formerly Grapevine,
           Flipkart. 🌐🚀💻
         </p>
-        <p className="text-lg max-w-3xl text-gray-400 mb-8 leading-relaxed">
+        <p className="text-base sm:text-lg max-w-3xl text-gray-400 mb-8 leading-relaxed">
           Passionate about crafting interactive and high-performance web
           applications. Experienced in React, Next.js, Node.js, and more.
           Building scalable solutions with a focus on performance and user
           experience.
         </p>
-        <div className="flex space-x-6 relative">
+        <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
           <a
             href="https://github.com/badman-returns"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center space-x-2 text-gray-300 hover:text-white text-xl transition duration-300"
+            className="flex items-center space-x-2 text-gray-300 hover:text-white text-lg sm:text-xl transition duration-300"
           >
-            <FaGithub size={28} /> <span>GitHub</span>
+            <FaGithub size={24} className="sm:text-3xl" /> <span>GitHub</span>
           </a>
           <a
             href="https://linkedin.com/in/trishnangshugoswami"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center space-x-2 text-gray-300 hover:text-white text-xl transition duration-300"
+            className="flex items-center space-x-2 text-gray-300 hover:text-white text-lg sm:text-xl transition duration-300"
           >
-            <FaLinkedin size={28} /> <span>LinkedIn</span>
+            <FaLinkedin size={24} className="sm:text-3xl" />{" "}
+            <span>LinkedIn</span>
           </a>
           <a
             href="mailto:trishnangshugoswami@gmail.com"
-            className="flex items-center space-x-2 text-gray-300 hover:text-white text-xl transition duration-300"
+            className="flex items-center space-x-2 text-gray-300 hover:text-white text-lg sm:text-xl transition duration-300"
           >
-            <Mail size={28} /> <span>Email</span>
+            <Mail size={24} className="sm:text-3xl" /> <span>Email</span>
           </a>
         </div>
       </section>
