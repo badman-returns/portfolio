@@ -1,0 +1,190 @@
+---
+title: "Prototypal inheritance in JavaScript (beyond the buzzwords)"
+date: "2025-01-15"
+---
+
+You might have heard the statement:
+
+> **“Everything in JavaScript is an object.”**
+
+While that’s not strictly true in all cases, understanding *why people say this* leads directly to understanding **prototypal inheritance**.
+
+Before we talk about inheritance, we need to understand what a **prototype** actually is.
+
+According to MDN:
+
+> *Prototypes are the mechanism by which JavaScript objects inherit features from one another.*
+
+Let’s break this down with a concrete example.
+
+---
+
+## A simple example
+
+```js
+// Base object
+const user = {
+  getUserInfo() {
+    console.log(`${this.name} is from ${this.city}`);
+  },
+  getOccupation() {
+    console.log(`${this.name} is a ${this.role}`);
+  },
+};
+
+// Object that inherits from `user`
+const developer = Object.create(user);
+
+developer.name = "Trish";
+developer.city = "Kolkata";
+developer.role = "Engineer";
+
+developer.getUserInfo();
+developer.getOccupation();
+
+```
+---
+
+## 📄 PART 3 — Object Shape + Question
+
+```md
+The `developer` object only contains these properties:
+
+```js
+{
+  name: "Trish",
+  city: "Kolkata",
+  role: "Engineer"
+}
+
+```
+
+---
+
+## 📄 PART 4 — Prototype Chain Explanation
+
+
+---
+
+## The prototype chain
+
+When JavaScript tries to access a property on an object, it follows this process:
+
+1. Look for the property on the object itself  
+2. If not found, look at the object’s prototype  
+3. Keep traversing up the chain until the property is found or the prototype is `null`
+
+In this case, the chain looks like this:
+```md
+developer
+↓ [[Prototype]]
+user
+↓ [[Prototype]]
+Object.prototype
+↓ [[Prototype]]
+null
+
+- `developer.__proto__` points to `user`
+- `user.__proto__` points to `Object.prototype`
+- `Object.prototype.__proto__` is `null`
+
+When `developer.getUserInfo()` is called:
+
+- JavaScript doesn’t find `getUserInfo` on `developer`
+- It checks `developer.__proto__` (which is `user`)
+- The method is found there and executed with `this` bound to `developer`
+
+This lookup process is called **prototype chaining**.
+```
+
+
+---
+
+## Why arrays, strings, and functions “have methods”
+
+Have you ever noticed that when you type a dot after an array, your editor shows methods like `map`, `filter`, and `reduce`?
+
+```js
+const arr = [1, 2, 3];
+arr.map(...);
+```
+
+Those methods don’t exist directly on the array instance.
+
+They come from the following chain:
+
+arr → Array.prototype → Object.prototype → null
+
+
+
+---
+
+## 📄 PART 7 — Built-ins Explanation
+
+Similarly:
+
+- String methods come from `String.prototype`
+- Function methods come from `Function.prototype`
+- `Number`, `Boolean`, and other primitives follow the same pattern
+
+All of them eventually inherit from `Object.prototype`.
+
+This is why JavaScript often feels like “everything is an object” — because almost everything participates in this prototype chain.
+
+---
+
+## Where the chain starts
+
+`Object.prototype` is the **root** of most prototype chains in JavaScript.
+
+It’s the point from which:
+
+- Arrays  
+- Functions  
+- Strings  
+- Numbers  
+- Custom objects  
+
+eventually inherit shared behavior.
+
+
+Understanding this helps explain:
+
+- Why methods appear “magically”
+- Why shadowing properties can be dangerous
+- Why modifying prototypes is powerful — and risky
+
+
+---
+
+## Summary
+
+- JavaScript uses **prototypal inheritance**, not classical inheritance
+- Every object has an internal `[[Prototype]]` reference
+- Property access walks up the prototype chain until it finds a match or reaches `null`
+- Built-in types like `Array` and `String` work the same way
+- Understanding prototypes makes JavaScript behavior predictable instead of magical
+
+Once you internalize the prototype chain, many of JavaScript’s quirks suddenly start to make sense.
+
+
+---
+
+## 🧠 Why this version is better
+
+- Clear sectioning
+- No repetition
+- Correct terminology (`[[Prototype]]` vs `__proto__`)
+- Explains *why* things work, not just *what*
+- Matches a thoughtful, systems-oriented tone
+
+---
+
+## 🔜 Optional next steps
+
+If you want, you can extend this post by:
+
+- Adding a visual ASCII diagram for the prototype chain
+- Writing a follow-up: *“Why `class` is just syntax sugar in JavaScript”*
+- Adding a debugging angle: how prototype misuse causes subtle bugs
+- Turning this into the first post of a JavaScript internals series

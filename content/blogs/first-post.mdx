@@ -1,0 +1,66 @@
+---
+title: "A real-world debugging story"
+date: "2025-01-10"
+---
+
+## Context
+
+This issue occurred in a high-traffic, real-time frontend application used daily by a large number of active users.
+
+The UI was data-heavy, state-driven, and optimized aggressively for performance.  
+The codebase had seen multiple iterations, feature additions, and refactors over time — a fairly typical production environment.
+
+---
+
+## Symptom
+
+Shortly after a routine deployment, users started reporting that a specific section of the UI had become **unscrollable**.
+
+There were:
+
+- No visible errors
+- No crashes
+- No obvious layout issues
+
+The page rendered correctly, but scrolling simply stopped working.
+
+---
+
+## Investigation
+
+The initial assumption was CSS-related:
+
+- Overflow rules
+- Container heights
+- Z-index conflicts
+
+None of these turned out to be the cause.
+
+Next, we looked into event handling:
+
+- Scroll listeners
+- Pointer events
+- Focus traps
+
+Still nothing conclusive.
+
+At this point, the issue was clearly **not a layout bug**, even though it presented as one.
+
+---
+
+## Root Cause
+
+The actual problem was **excessive re-renders caused by reference instability**.
+
+A derived configuration value was being recreated on every render and passed down as a dependency to a memoized component.
+
+Although the values inside the object were identical, the **reference changed every time**, triggering unnecessary updates.
+
+A simplified version of the issue looked like this:
+
+```js
+const searchOnKeys = ["symbol", "asset"];
+
+useEffect(() => {
+  resetPagination();
+}, [searchOnKeys]);
