@@ -70,9 +70,9 @@ export default function Home() {
         {/* RIGHT */}
         <div>
           <img
-            src="/dp.jpeg"
-            alt="Trishnangshu Goswami"
-            className="rounded-2xl aspect-[4/5] object-cover border border-[var(--surface-border)]"
+            src="/dp.png"
+            alt="Trishnangshu Goswami (Trish) — Frontend Engineer"
+            className="rounded-2xl aspect-[6/8] object-cover border border-[var(--surface-border)]"
           />
         </div>
       </section>

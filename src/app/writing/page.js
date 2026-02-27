@@ -2,6 +2,17 @@ import Link from "next/link";
 import { client } from "@/sanity/client";
 import { allPostsQuery } from "@/sanity/queries";
 
+export const metadata = {
+  title: "Writing",
+  description:
+    "Essays by Trishnangshu Goswami (Trish) on frontend architecture, production debugging, real-time systems, JavaScript internals, and engineering trade-offs.",
+  openGraph: {
+    title: "Writing — Trish Goswami",
+    description:
+      "Frontend engineering essays — architecture, debugging, and real-time systems.",
+  },
+};
+
 export default async function Writing() {
   const posts = await client.fetch(allPostsQuery);
 

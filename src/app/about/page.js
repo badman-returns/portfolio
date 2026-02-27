@@ -1,5 +1,16 @@
 import Image from "next/image";
 
+export const metadata = {
+  title: "About Trishnangshu Goswami (Trish)",
+  description:
+    "Learn about Trishnangshu Sekhar Goswami (Trish Goswami) — a frontend engineer from Kolkata, India. From sketching and hacking to building production-grade frontend systems.",
+  openGraph: {
+    title: "About Trish Goswami — Frontend Engineer",
+    description:
+      "The story of Trishnangshu Goswami — from curiosity-driven hacking to building real-time trading and healthcare frontends.",
+  },
+};
+
 export default function About() {
   return (
     <section className="mx-auto max-w-4xl px-6 py-10 space-y-20">
@@ -21,8 +32,8 @@ export default function About() {
         <div className="relative">
           <div className="surface p-2 inline-block">
             <Image
-              src="/dp.jpeg"
-              alt="Trishnangshu Goswami"
+              src="/dp.png"
+              alt="Trishnangshu Sekhar Goswami — Trish Goswami — Frontend Engineer"
               width={220}
               height={280}
               className="rounded-xl object-cover"

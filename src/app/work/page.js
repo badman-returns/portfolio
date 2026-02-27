@@ -1,3 +1,14 @@
+export const metadata = {
+  title: "Work Experience",
+  description:
+    "Trishnangshu Goswami’s (Trish Goswami) professional experience — building and debugging large-scale frontend systems at Delta Exchange, Practo, and more.",
+  openGraph: {
+    title: "Work — Trish Goswami",
+    description:
+      "End-to-end frontend engineering across trading, consumer, and healthcare domains.",
+  },
+};
+
 export default function Work() {
   return (
     <section className="mx-auto max-w-5xl px-6 py-5 ">

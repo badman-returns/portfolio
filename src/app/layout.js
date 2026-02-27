@@ -1,23 +1,102 @@
 import "./globals.css";
 import Header from "./components/Header";
 
+const siteUrl = "https://trishgoswami.com";
+
 export const metadata = {
-  title: "Trishnangshu Goswami",
-  description: "Frontend Engineer & Developer",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Trishnangshu Goswami — Frontend Engineer",
+    template: "%s | Trish Goswami",
+  },
+  description:
+    "Trishnangshu Sekhar Goswami (Trish Goswami) — Frontend Engineer specializing in performance-critical, real-time UI systems. Building and debugging trading platforms, healthcare products, and long-running frontends.",
+  keywords: [
+    "Trishnangshu Goswami",
+    "Trish Goswami",
+    "Trishnangshu Sekhar Goswami",
+    "Trish",
+    "Trishnangshu",
+    "frontend engineer",
+    "React developer",
+    "Next.js developer",
+    "JavaScript engineer",
+    "real-time UI",
+    "trading platform frontend",
+    "web performance",
+  ],
+  authors: [{ name: "Trishnangshu Sekhar Goswami", url: siteUrl }],
+  creator: "Trishnangshu Goswami",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: "Trish Goswami",
+    title: "Trishnangshu Goswami — Frontend Engineer",
+    description:
+      "Trish Goswami — Frontend Engineer building performance-critical, real-time frontend systems across trading, healthcare, and consumer products.",
+    images: [
+      {
+        url: "/dp.png",
+        width: 1200,
+        height: 630,
+        alt: "Trishnangshu Goswami — Frontend Engineer",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Trishnangshu Goswami — Frontend Engineer",
+    description:
+      "Trish Goswami — building & debugging performance-critical frontend systems.",
+    creator: "@ts_goswami",
+    images: ["/dp.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+  alternates: {
+    canonical: siteUrl,
+  },
   icons: {
-    icon: [
-      { url: '/dp.jpeg', sizes: '16x16', type: 'image/png' },
-      { url: '/dp.jpeg', sizes: '32x32', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/dp.jpeg' },
-    ],
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/dp.png" }],
   },
 };
 
 export default function RootLayout({ children }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: "Trishnangshu Sekhar Goswami",
+    alternateName: ["Trish Goswami", "Trish", "Trishnangshu Goswami"],
+    url: "https://trishgoswami.com",
+    jobTitle: "Frontend Engineer",
+    sameAs: [
+      "https://github.com/badman-returns",
+      "https://linkedin.com/in/trishnangshugoswami",
+      "https://x.com/ts_goswami",
+    ],
+    knowsAbout: [
+      "Frontend Engineering",
+      "React",
+      "Next.js",
+      "JavaScript",
+      "Real-time UI Systems",
+      "Web Performance",
+    ],
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className="antialiased min-h-screen flex flex-col">
         {/* Header */}
         <Header />
