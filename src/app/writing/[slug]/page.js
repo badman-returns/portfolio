@@ -3,10 +3,13 @@ import { notFound } from "next/navigation";
 import { client } from "@/sanity/client";
 import { postBySlugQuery } from "@/sanity/queries";
 import { portableTextComponents } from "@/sanity/portableText";
+import { urlFor } from "@/sanity/image";
 
 export default async function PostPage({ params }) {
+  const { slug } = await params;
+
   const post = await client.fetch(postBySlugQuery, {
-    slug: params.slug,
+    slug,
   });
 
   if (!post) notFound();
@@ -19,8 +22,20 @@ export default async function PostPage({ params }) {
 
         {/* Meta */}
         <p className="meta mt-2">
-          {new Date(post.publishedAt).toDateString()} · {post.author.name}
+          {post.publishedAt
+            ? new Date(post.publishedAt).toDateString()
+            : "No publish date"}
+          {post.author?.name ? ` · ${post.author.name}` : ""}
         </p>
+
+        {/* Main Image */}
+        {post.mainImage ? (
+          <img
+            src={urlFor(post.mainImage).width(1400).quality(90).url()}
+            alt={post.mainImage?.alt || post.title}
+            className="mt-8 w-full rounded-2xl border border-[var(--surface-border)]"
+          />
+        ) : null}
 
         {/* Body */}
         <div className="mx-auto max-w-[720px] prose prose-neutral dark:prose-invert">
