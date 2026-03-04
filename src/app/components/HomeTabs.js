@@ -1,42 +1,21 @@
-"use client";
-
-import { useState } from "react";
 import HomeOverview from "./HomeOverview";
 import HomeExperience from "./HomeExperience";
 
 export default function HomeTabs() {
-  const [active, setActive] = useState("overview");
-
   return (
-    <section className="space-y-12">
-      {/* Tabs */}
-      <div className="flex gap-8 border-b border-[var(--surface-border)]">
-        <button
-          onClick={() => setActive("overview")}
-          className={`pb-3 text-sm font-medium ${
-            active === "overview"
-              ? "border-b-2 border-[var(--accent)] text-[var(--foreground)]"
-              : "text-[var(--muted)]"
-          }`}
-        >
-          Overview
-        </button>
-
-        <button
-          onClick={() => setActive("experience")}
-          className={`pb-3 text-sm font-medium ${
-            active === "experience"
-              ? "border-b-2 border-[var(--accent)] text-[var(--foreground)]"
-              : "text-[var(--muted)]"
-          }`}
-        >
-          Experience
-        </button>
+    <div className="space-y-12 pt-4">
+      <div className="space-y-3">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--accent)]">Career narrative</span>
+        <p className="max-w-2xl text-sm text-[var(--muted)] leading-relaxed">
+          A linear walkthrough: how I think about frontend systems, then where I applied those ideas in production.
+        </p>
       </div>
 
-      {/* Content */}
-      {active === "overview" && <HomeOverview />}
-      {active === "experience" && <HomeExperience />}
-    </section>
+      <HomeOverview />
+
+      <div className="mx-auto h-px w-2/3 bg-gradient-to-r from-transparent via-[var(--surface-border)] to-transparent" />
+
+      <HomeExperience />
+    </div>
   );
 }
