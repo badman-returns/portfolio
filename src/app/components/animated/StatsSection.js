@@ -10,7 +10,7 @@ gsap.registerPlugin(ScrollTrigger);
 const stats = [
   {
     label: "Experience",
-    value: "5+",
+    value: "6+",
     suffix: "years",
     detail: "Shipping production frontend systems",
     icon: Clock3,
@@ -125,7 +125,7 @@ export default function StatsSection() {
             <div
               key={stat.label}
               data-stat
-              className="group relative flex flex-col items-center px-6 py-10 text-center md:py-14"
+              className="group relative flex flex-col items-center px-4 py-8 text-center sm:px-6 sm:py-10 md:py-14"
               style={{ opacity: 0 }}
             >
               {/* Hover glow */}
@@ -154,12 +154,12 @@ export default function StatsSection() {
               <div className="relative mb-2">
                 <span
                   data-stat-value
-                  className={`bg-gradient-to-r ${stat.gradient} bg-clip-text text-5xl font-bold tracking-tight text-transparent md:text-6xl`}
+                  className={`bg-gradient-to-r ${stat.gradient} bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-6xl`}
                   style={{ opacity: 0 }}
                 >
                   {stat.value}
                 </span>
-                <span className="ml-2 text-lg font-medium text-[var(--foreground)]/80">
+                <span className="ml-2 text-base font-medium text-[var(--foreground)]/80 sm:text-lg">
                   {stat.suffix}
                 </span>
               </div>
@@ -179,7 +179,7 @@ export default function StatsSection() {
       </div>
 
       {/* Bottom gradient line */}
-      <div className="mx-auto h-px w-3/4 bg-gradient-to-r from-transparent via-[var(--accent)]/30 to-transparent" />
+      <div className="mx-auto h-px w-full bg-gradient-to-r from-transparent via-[var(--accent)]/30 to-transparent md:w-3/4" />
     </section>
   );
 }

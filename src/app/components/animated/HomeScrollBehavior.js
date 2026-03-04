@@ -7,6 +7,7 @@ export default function HomeScrollBehavior() {
     const html = document.documentElement;
     const body = document.body;
     const SNAP_PADDING_TOP = 56;
+    const desktopQuery = window.matchMedia("(min-width: 768px)");
 
     const prevHtmlScrollBehavior = html.style.scrollBehavior;
     const prevBodyScrollBehavior = body.style.scrollBehavior;
@@ -16,7 +17,7 @@ export default function HomeScrollBehavior() {
     const prevBodySnapPaddingTop = body.style.scrollPaddingTop;
 
     const setSnapEnabled = (enabled) => {
-      const snapType = enabled ? "y mandatory" : "none";
+      const snapType = enabled && desktopQuery.matches ? "y mandatory" : "none";
       html.style.scrollSnapType = snapType;
       body.style.scrollSnapType = snapType;
     };
@@ -31,6 +32,11 @@ export default function HomeScrollBehavior() {
     let lastScrollY = window.scrollY;
 
     const handleScroll = () => {
+      if (!desktopQuery.matches) {
+        setSnapEnabled(false);
+        return;
+      }
+
       const currentY = window.scrollY;
       const isScrollingUp = currentY < lastScrollY;
       const isScrollingDown = currentY > lastScrollY;
@@ -53,10 +59,16 @@ export default function HomeScrollBehavior() {
       }
     };
 
+    const handleViewportChange = () => {
+      setSnapEnabled(!snapDisabledAfterStop);
+    };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
+    desktopQuery.addEventListener("change", handleViewportChange);
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      desktopQuery.removeEventListener("change", handleViewportChange);
       html.style.scrollBehavior = prevHtmlScrollBehavior;
       body.style.scrollBehavior = prevBodyScrollBehavior;
       html.style.scrollSnapType = prevHtmlSnap;

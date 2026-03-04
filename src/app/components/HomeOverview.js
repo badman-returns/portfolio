@@ -317,7 +317,7 @@ export default function HomeOverview() {
     <div ref={containerRef} className="max-w-5xl">
 
       {/* ============ SECTION 1: DEEP WORK ============ */}
-      <div ref={section1Ref} className="space-y-10 pb-20 snap-start min-h-[calc(100vh-4rem)]">
+      <div ref={section1Ref} className="space-y-8 pb-14 md:space-y-10 md:pb-20 md:snap-start md:min-h-[calc(100vh-4rem)]">
         <div data-head style={{ opacity: 0 }}>
           <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--accent)]">Deep work</span>
           <h2 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">What I work on</h2>
@@ -347,10 +347,10 @@ export default function HomeOverview() {
       </div>
 
       {/* Gradient divider */}
-      <div className="mx-auto mb-20 h-px w-2/3 bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent" />
+      <div className="mx-auto mb-14 h-px w-2/3 bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent md:mb-20" />
 
       {/* ============ SECTION 2: WORK + STACK ============ */}
-      <div ref={section2Ref} className="space-y-20 pb-20 snap-start min-h-[calc(100vh-4rem)]">
+      <div ref={section2Ref} className="space-y-14 pb-14 md:space-y-20 md:pb-20 md:snap-start md:min-h-[calc(100vh-4rem)]">
 
         {/* Projects */}
         <div className="space-y-10">
@@ -430,13 +430,13 @@ export default function HomeOverview() {
       </div>
 
       {/* Gradient divider */}
-      <div className="mx-auto mb-20 h-px w-2/3 bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent" />
+      <div className="mx-auto mb-14 h-px w-2/3 bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent md:mb-20" />
 
       {/* ============ SECTION 3: PHILOSOPHY + NOW ============ */}
       <div
         ref={section3Ref}
         data-snap-stop
-        className="space-y-20 pb-10 snap-start min-h-[calc(100vh-4rem)]"
+        className="space-y-14 pb-8 md:space-y-20 md:pb-10 md:snap-start md:min-h-[calc(100vh-4rem)]"
       >
 
         {/* How I think */}
@@ -446,10 +446,10 @@ export default function HomeOverview() {
             <h2 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">How I think</h2>
           </div>
 
-          <div className="grid grid-cols-1 items-start gap-10 md:grid-cols-[1fr_1fr]">
+          <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[1fr_1fr] md:gap-10">
             <blockquote data-quote className="relative pl-6" style={{ opacity: 0 }}>
               <span className="absolute left-0 top-0 bottom-0 w-0.5 rounded-full bg-gradient-to-b from-[#4f6d99] to-[#9fb7d8]" />
-              <p className="text-lg font-medium leading-relaxed">
+              <p className="text-base font-medium leading-relaxed sm:text-lg">
                 Frontend systems are long-running, stateful machines — not just collections of components.
               </p>
             </blockquote>
@@ -475,7 +475,7 @@ export default function HomeOverview() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="space-y-4">
               {currentFocus.map((item, i) => (
-                <div key={i} data-focus-item className="group flex items-start gap-4 rounded-xl border border-transparent px-4 py-3 transition-colors hover:border-[var(--surface-border)] hover:bg-[color:color-mix(in_srgb,var(--surface)_40%,transparent)]" style={{ opacity: 0 }}>
+                <div key={i} data-focus-item className="group flex items-start gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors hover:border-[var(--surface-border)] hover:bg-[color:color-mix(in_srgb,var(--surface)_40%,transparent)] md:gap-4 md:px-4 md:py-3" style={{ opacity: 0 }}>
                   <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#4f6d99] to-[#9fb7d8] text-[10px] font-bold text-white">
                     {i + 1}
                   </span>
@@ -485,7 +485,7 @@ export default function HomeOverview() {
             </div>
 
             <div data-panel className="flex items-start" style={{ opacity: 0 }}>
-              <div className="rounded-2xl border border-[var(--surface-border)] bg-[color:color-mix(in_srgb,var(--surface)_50%,transparent)] p-6">
+              <div className="rounded-2xl border border-[var(--surface-border)] bg-[color:color-mix(in_srgb,var(--surface)_50%,transparent)] p-5 md:p-6">
                 <p className="text-sm text-[var(--muted)] leading-relaxed">
                   This focus reflects where I&apos;m currently investing time — writing, learning, and building in areas that sharpen my understanding of long-running systems and real-world constraints.
                 </p>

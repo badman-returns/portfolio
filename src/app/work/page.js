@@ -27,7 +27,7 @@ const experiences = [
       { text: "Debugged production-only issues caused by rendering loops, unstable references, and state churn under real market load." },
       { text: "Collaborated closely with backend and compliance teams to ensure correctness under regulatory constraints without sacrificing UX responsiveness." },
     ],
-    stack: ["React", "TypeScript", "WebSockets", "Performance Profiling"],
+    stack: ["React", "TypeScript", "WebSockets", "RxJS", "Performance Profiling"],
   },
   {
     period: "Founder Journey",

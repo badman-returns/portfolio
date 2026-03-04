@@ -17,14 +17,14 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--surface-border)] bg-[color:color-mix(in_oklab,var(--background)_92%,transparent)] backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
         {/* Brand */}
-        <Link href="/" className="font-medium tracking-wide">
+        <Link href="/" className="max-w-[72vw] truncate text-sm font-medium tracking-wide sm:text-base md:max-w-none">
           Trishnangshu Goswami
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden items-center gap-6 text-sm md:flex">
+        <nav className="hidden items-center gap-8 text-sm md:flex lg:gap-10">
           {navItems.map((item) => (
             <motion.div
               key={item.href}
@@ -33,7 +33,7 @@ export default function Header() {
             >
               <Link
                 href={item.href}
-                className="font-medium transition-colors hover:text-[var(--accent)]"
+                className="px-1 py-1 font-medium transition-colors hover:text-[var(--accent)]"
               >
                 {item.label}
               </Link>
@@ -61,7 +61,7 @@ export default function Header() {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
           >
-            <nav className="flex flex-col gap-4 px-6 py-4 text-sm">
+            <nav className="flex flex-col gap-5 px-4 py-5 text-sm sm:px-6 sm:py-6">
               {navItems.map((item) => (
                 <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
                   {item.label}
