@@ -3,42 +3,42 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+
+const navItems = [
+  { href: "/", label: "Home" },
+  { href: "/work", label: "Work" },
+  { href: "/writing", label: "Writing" },
+  { href: "/about", label: "About" },
+];
 
 export default function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-[var(--background)] border-b border-[var(--surface-border)]">
-      <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-50 border-b border-[var(--surface-border)] bg-[color:color-mix(in_oklab,var(--background)_92%,transparent)] backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
         {/* Brand */}
-        <span className="font-medium">Trishnangshu Goswami</span>
+        <Link href="/" className="max-w-[72vw] truncate text-sm font-medium tracking-wide sm:text-base md:max-w-none">
+          Trishnangshu Goswami
+        </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-6 text-sm">
-          <Link
-            href="/"
-            className="font-medium hover:text-[var(--accent)] transition-colors"
-          >
-            Home
-          </Link>
-          <Link
-            href="/work"
-            className="font-medium hover:text-[var(--accent)] transition-colors"
-          >
-            Work
-          </Link>
-          <Link
-            href="/writing"
-            className="font-medium hover:text-[var(--accent)] transition-colors"
-          >
-            Writing
-          </Link>
-          <Link
-            href="/about"
-            className="font-medium hover:text-[var(--accent)] transition-colors"
-          >
-            About
-          </Link>
+        <nav className="hidden items-center gap-8 text-sm md:flex lg:gap-10">
+          {navItems.map((item) => (
+            <motion.div
+              key={item.href}
+              whileHover={{ y: -1 }}
+              transition={{ type: "spring", stiffness: 320, damping: 24 }}
+            >
+              <Link
+                href={item.href}
+                className="px-1 py-1 font-medium transition-colors hover:text-[var(--accent)]"
+              >
+                {item.label}
+              </Link>
+            </motion.div>
+          ))}
         </nav>
 
         {/* Mobile toggle */}
@@ -52,24 +52,25 @@ export default function Header() {
       </div>
 
       {/* Mobile menu */}
-      {open && (
-        <div className="md:hidden border-t border-[var(--surface-border)]">
-          <nav className="px-6 py-4 flex flex-col gap-4 text-sm">
-            <Link href="/" onClick={() => setOpen(false)}>
-              Home
-            </Link>
-            <Link href="/work" onClick={() => setOpen(false)}>
-              Work
-            </Link>
-            <Link href="/writing" onClick={() => setOpen(false)}>
-              Writing
-            </Link>
-            <Link href="/about" onClick={() => setOpen(false)}>
-              About
-            </Link>
-          </nav>
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            className="border-t border-[var(--surface-border)] md:hidden"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+          >
+            <nav className="flex flex-col gap-5 px-4 py-5 text-sm sm:px-6 sm:py-6">
+              {navItems.map((item) => (
+                <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

@@ -4,138 +4,58 @@
 
 /* ---------- THEME TOKENS ---------- */
 :root {
-  --background: #fbf5e9;
-  --foreground: #2b2b2b;
+  --background: #0f1622;
+  --foreground: #e6edf7;
 
-  --surface: #fffaf2;
-  --surface-border: #e6dccb;
+  --surface: #151f2e;
+  --surface-border: #2b3950;
 
-  --muted: #5f5f5f;
-  --muted-light: #7a7a7a;
+  --muted: #a5b2c4;
+  --muted-light: #7f8ea2;
 
-  --accent: #a12c2c;
+  --accent: #9fb7d8;
 }
 
-[data-theme="dark"] {
-  --background: #1a1612;
-  --foreground: #e8e6e3;
+[data-theme="light"] {
+  --background: #ece7de;
+  --foreground: #202733;
 
-  --surface: #221c16;
-  --surface-border: #3a2f24;
+  --surface: #f7f2e9;
+  --surface-border: #d8cfbf;
 
-  --muted: #b8b4ae;
-  --muted-light: #8f8b85;
+  --muted: #66707d;
+  --muted-light: #8b93a0;
 
-  --accent: #e57373;
+  --accent: #3c4e6c;
 }
 
 /* ---------- BASE ---------- */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar {
+  display: none;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: ui-sans-serif, system-ui;
   line-height: 1.75;
+  min-height: 100vh;
 }
 
 /* ---------- COMPONENTS ---------- */
 .surface {
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
   border: 1px solid var(--surface-border);
   border-radius: 1rem;
+  backdrop-filter: blur(8px);
 }
 
 .section-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--accent);
-}
-
-/* ---------- PROSE ---------- */
-.prose {
-  max-width: 72ch;
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
-}
-
-.prose p {
-  opacity: 0.92;
-}
-
-.prose h1,
-.prose h2,
-.prose h3 {
-  font-weight: 700;
-}
-
-.prose a {
-  color: var(--accent);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(161, 44, 44, 0.35);
-}
-
-.prose a:hover {
-  border-bottom-color: var(--accent);
-}
-
-.prose blockquote {
-  border-left: 4px solid var(--accent);
-  padding-left: 1rem;
-  color: var(--muted);
-  font-style: italic;
-}
-
-.prose code {
-  background: rgba(100, 116, 139, 0.15);
-  padding: 0.15em 0.35em;
-  border-radius: 0.25rem;
-}
-
-.prose pre {
-  background: #1f1c18;
-  color: #f3f4f6;
-  padding: 1.25rem 1.5rem;
-  border-radius: 0.75rem;
-  overflow-x: auto;
-  border: 1px solid #2a2520;
-}
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* ---------- THEME TOKENS ---------- */
-:root {
-  --background: #fbf5e9;
-  --foreground: #2b2b2b;
-
-  --surface: #fffaf2;
-  --surface-border: #e6dccb;
-
-  --muted: #5f5f5f;
-  --muted-light: #7a7a7a;
-
-  --accent: #a12c2c;
-}
-
-
-/* ---------- BASE ---------- */
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: ui-sans-serif, system-ui;
-  line-height: 1.75;
-}
-
-/* ---------- COMPONENTS ---------- */
-.surface {
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: 1rem;
-}
-
-.section-title {
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -161,7 +81,7 @@ body {
 .prose a {
   color: var(--accent);
   text-decoration: none;
-  border-bottom: 1px solid rgba(161, 44, 44, 0.35);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .prose a:hover {
@@ -176,18 +96,24 @@ body {
 }
 
 .prose code {
-  background: rgba(100, 116, 139, 0.15);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   padding: 0.15em 0.35em;
   border-radius: 0.25rem;
 }
 
 .prose pre {
-  background: #1f1c18;
-  color: #f3f4f6;
+  background: #1a2230;
+  color: #f0f4fa;
   padding: 1.25rem 1.5rem;
   border-radius: 0.75rem;
   overflow-x: auto;
-  border: 1px solid #2a2520;
+  border: 1px solid #2d3a4e;
+}
+
+[data-theme="light"] .prose pre {
+  background: #1a2230;
+  color: #f0f4fa;
+  border: 1px solid #2d3a4e;
 }
 
 .prose {
@@ -210,8 +136,16 @@ body {
   color: var(--foreground);
 }
 
-
 .prose .meta {
   color: var(--muted);
   font-size: 0.875rem;
+}
+
+/* Hide scrollbar but keep scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

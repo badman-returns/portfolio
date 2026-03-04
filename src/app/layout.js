@@ -90,19 +90,20 @@ export default function RootLayout({ children }) {
   };
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
       <head>
+        <style dangerouslySetInnerHTML={{ __html: 'html::-webkit-scrollbar{display:none}html{scrollbar-width:none;-ms-overflow-style:none}' }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="antialiased min-h-screen flex flex-col">
+      <body className="antialiased min-h-screen flex flex-col scrollbar-hide">
         {/* Header */}
         <Header />
 
         {/* Main */}
-        <main className="flex-1 mx-auto max-w-6xl px-6">{children}</main>
+        <main className="flex-1">{children}</main>
 
         {/* Footer */}
         <footer className="border-t border-[var(--surface-border)]">
