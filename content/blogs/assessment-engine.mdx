@@ -1,0 +1,248 @@
+---
+title: "Building a Real-Time Assessment Engine with WebSockets and State Machines"
+date: "2025-08-20"
+---
+
+Most health-tech assessment flows are glorified Google Forms. You submit answers, hit a server endpoint, get a score back. Stateless. Simple. Boring.
+
+Ours couldn't be. We needed a system where a patient opens a chat, answers screening questions in real time, and the backend walks them through a branching clinical pathway — skipping irrelevant sections, detecting risk flags mid-assessment, and flushing partial state to durable storage even if the user drops off. All over WebSockets. All while keeping sub-second response times.
+
+This is the story of how we built it, what broke, and what I'd do differently.
+
+---
+
+## Why Not Just a REST Form?
+
+The initial product requirement sounded deceptively simple: patients answer mental health screening questions, get matched with a doctor. A POST endpoint with a JSON body would work, right?
+
+Three things killed that idea immediately:
+
+1. **Branching logic.** The clinical team wanted conditional pathways. If a patient scores high on depression, skip the phobia section and route straight to a specialist. A static form can't do that without shipping the entire decision tree to the client.
+
+2. **Real-time risk detection.** Certain answers — self-harm ideation, suicidal thoughts — need to trigger immediate backend actions: flag the patient, notify on-call staff, short-circuit the normal flow. You can't wait for form submission to act on answer #3 of 23.
+
+3. **Conversational UX.** The product is a chat interface. Questions appear one at a time. The patient taps an option, the next question slides in. This isn't a form — it's a stateful conversation, and the server needs to drive it.
+
+So we went with WebSockets (Socket.IO specifically) and a server-side state machine.
+
+---
+
+## The State Machine
+
+The assessment engine runs as a category-based state machine. Each category (depression screening, anxiety screening, phobia assessment, etc.) contains a set of questions. The machine progresses linearly through categories but can branch based on accumulated scores.
+
+Here's the simplified flow:
+
+```
+DEPRESSION → ANXIETY → [branch] → PHOBIA → DOCTOR_RECOMMENDATION
+                          ↓
+                    (high anxiety score)
+                          ↓
+                   skip to SPECIALIST_MATCH
+```
+
+The state machine is implemented as a service class with a single `processAnswer` method. Each call:
+
+1. Records the answer in Redis
+2. Checks for risk flags on the current question
+3. Determines the next question or category transition
+4. Emits the next event back to the client
+
+The key design decision was keeping the state machine on the server. The client never knows what question comes next — it just renders whatever the server sends. This means clinical pathways can be updated without shipping a new app version.
+
+### Emergency Short-Circuit
+
+One pattern I'm particularly proud of: the emergency exit. If a patient indicates self-harm on any question, the system immediately:
+
+- Flushes all collected answers to PostgreSQL (even though the assessment isn't complete)
+- Emits a series of emergency resource messages to the chat
+- Notifies the clinical team via a separate socket event
+- Marks the assessment as requiring manual review
+
+This happens *before* the next question is determined. The risk check runs first, always. We couldn't afford a race condition where the scoring engine processes the answer before the safety check fires.
+
+---
+
+## Dual-Layer State: Redis + PostgreSQL
+
+This was the most interesting architectural decision and the source of our worst bugs.
+
+**The problem:** WebSocket connections are ephemeral. Patients lose signal, close the app, switch tabs. If we only stored state in memory, a server restart would wipe every in-progress assessment. But if we round-tripped to PostgreSQL on every answer, we'd add 20-50ms of latency to each interaction — noticeable in a chat UI.
+
+**The solution:** Redis as the hot layer, PostgreSQL as the durable layer.
+
+During an active assessment, all state lives in a Redis hash:
+
+```
+Key:    assessment:{userId}
+Fields: currentCategory, currentQuestionIndex, score_depression,
+        score_anxiety, answer_q1, answer_q2, ...
+```
+
+Every answer updates the hash with `HSET`. Reads are `HGET` or `HMGET`. Sub-millisecond. The chat feels instant.
+
+When the assessment completes (or is force-flushed due to a risk flag), we run the flush pattern:
+
+```
+1. HGETALL assessment:{userId}
+2. Parse fields into structured response objects
+3. INSERT each response into user_assessment_responses (PostgreSQL)
+4. Update user_assessment_state with completion status
+5. DEL assessment:{userId}
+```
+
+This runs inside a database transaction. If the PostgreSQL insert fails, the Redis key stays intact and we can retry.
+
+### The Bug That Taught Me About TTLs
+
+For about two weeks after launch, we had a subtle bug: patients who started an assessment but never finished would have their Redis keys stick around forever. No TTL. The Redis instance slowly accumulated orphaned assessment state.
+
+We didn't notice until Redis memory usage started climbing. The fix was straightforward — set a 24-hour TTL on assessment keys — but the real lesson was about the flush pattern. When we added TTLs, we also needed a cleanup job that would flush expiring keys to PostgreSQL before Redis evicted them. Otherwise, we'd lose partial assessment data.
+
+The cleanup job runs every hour via node-cron, scans for keys older than 20 hours (giving a 4-hour buffer before the 24h TTL), and flushes them to a `partial_assessments` table for clinical review.
+
+---
+
+## Socket.IO Event Design
+
+We went through two iterations of the event protocol. The first one was a mistake. Here's what we learned.
+
+### Version 1: Single Event, Type Field
+
+The initial design used a single `assessment` event with a `type` field to differentiate message kinds:
+
+```typescript
+socket.emit('assessment', {
+  type: 'QUESTION',
+  data: { questionId: 'q1', text: '...', options: [...] }
+});
+
+socket.emit('assessment', {
+  type: 'RESPONSE',
+  data: { questionId: 'q1', selectedOption: 'opt_2' }
+});
+```
+
+This worked but created a massive switch statement on both client and server. Every handler had to parse the type, validate the payload shape for that type, and dispatch accordingly. Error handling was impossible to get right — a malformed `RESPONSE` payload would hit the `QUESTION` handler's validation and throw a confusing error.
+
+### Version 2: Namespaced Events with Ack Callbacks
+
+For the clinical instruments system (PHQ-9, GAD-7 — standardized psychiatric scales we added later), we switched to namespaced events:
+
+```typescript
+// Client → Server
+socket.emit('assessment:answer', {
+  submissionId,
+  questionId,
+  selectedOption
+}, (ack) => {
+  if (ack.error) handleError(ack.error);
+});
+
+// Server → Client
+socket.emit('assessment:next_question', { question, progress });
+socket.emit('assessment:complete', { score, severity });
+socket.emit('assessment:risk_alert', { level, protocol });
+```
+
+The ack callback pattern was the real win. Instead of the server emitting a separate `assessment:answer_received` event, the client gets confirmation in the same round trip. If the server fails to process the answer, the ack carries the error and the client can retry or show a message — no ambiguity about whether the answer was recorded.
+
+We also added a `progress` field to every server-to-client event: `{ current: 5, total: 9 }`. Tiny addition, huge UX improvement. The patient sees a progress indicator that's always in sync with server state.
+
+---
+
+## The Scoring Engine
+
+Clinical assessment scoring sounds simple until you read the specifications. Different instruments use different methods:
+
+- **Sum scoring** (PHQ-9): Add up all answer values. 0-4 minimal, 5-9 mild, 10-14 moderate, 15-19 moderately severe, 20-27 severe.
+- **Average scoring**: Mean of answer values, mapped to severity bands.
+- **Subscale scoring** (DASS-21): Questions belong to subgroups (depression, anxiety, stress). Each subgroup scored independently.
+- **Weighted scoring**: Certain questions carry multipliers.
+
+And then there's reverse scoring — some questions are phrased inversely, so a "4" answer actually contributes "0" to the total.
+
+We built this as a config-driven scoring service. Each instrument is defined as a JSON document:
+
+```json
+{
+  "id": "phq9",
+  "scoring_method": "sum",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "Little interest or pleasure in doing things?",
+      "options": [
+        { "text": "Not at all", "value": 0 },
+        { "text": "Several days", "value": 1 },
+        { "text": "More than half the days", "value": 2 },
+        { "text": "Nearly every day", "value": 3 }
+      ],
+      "risk_flag": false
+    },
+    {
+      "id": "q9",
+      "text": "Thoughts that you would be better off dead...",
+      "options": [...],
+      "risk_flag": true,
+      "risk_threshold": 1
+    }
+  ],
+  "severity_bands": [
+    { "min": 0, "max": 4, "label": "Minimal" },
+    { "min": 5, "max": 9, "label": "Mild" },
+    ...
+  ]
+}
+```
+
+The scoring service takes a completed submission, looks up the instrument config, applies the scoring method, checks severity bands, and returns a structured result. New instruments can be added by importing a JSON file — no code changes needed.
+
+The per-question `risk_flag` is critical. Question 9 of the PHQ-9 asks about self-harm. If the patient selects *anything* above "Not at all" (`value >= 1`), the system triggers a risk alert before scoring completes. The doctor gets a real-time socket notification: `assessment:risk_alert` with the patient ID and the specific response.
+
+---
+
+## Frontend: Chat as a Rendering Engine
+
+The frontend is deliberately dumb. The chat component maintains a message array in Redux and renders each message based on its type:
+
+```typescript
+switch (message.type) {
+  case 'RADIO':       return <RadioMessage />;
+  case 'CHECKBOX':    return <CheckboxMessage />;
+  case 'ASSESSMENT_QUESTION': return <AssessmentQuestionMessage />;
+  case 'TEXT':        return <TextMessage />;
+  case 'PAYMENT':     return <PaymentCheckout />;
+  // ... 20+ message types
+}
+```
+
+Each message component handles its own interaction state — which option is selected, whether the user has submitted — but all business logic lives in hooks (`useChat`, `useClinicalAssessment`) that emit socket events and dispatch Redux actions.
+
+The `isLastMessage` prop is the single most important detail. Only the last message in the chat is interactive. All previous messages render in a disabled state with the selected option highlighted. This prevents patients from going back and changing answers after the scoring engine has already processed them — a clinical requirement, not a UX choice.
+
+---
+
+## Production Lessons
+
+**Reconnection is harder than connection.** Socket.IO handles reconnection automatically, but our assessment state was tied to a specific socket session. When a patient reconnects, we needed to: detect the reconnection, load their state from Redis, reconstruct the last emitted question, and resume. Our first implementation didn't do this — reconnecting patients saw a blank chat. The fix was sending the current assessment state as part of the `connect` handshake.
+
+**Redis hash field ordering isn't guaranteed.** We initially relied on field insertion order when iterating `HGETALL` results during the flush. This worked in testing but broke in production when Redis decided to reorganize the hash internally. The fix was parsing field names (extracting question IDs from field keys) rather than relying on iteration order.
+
+**Rate limiting socket events matters.** During load testing, we discovered that a fast-tapping patient could emit 10+ answer events per second, each triggering a Redis write, a risk check, and a state machine transition. We added a per-socket rate limiter: one answer event per 500ms. If the client sends faster, the ack callback returns a `RATE_LIMITED` error and the client debounces.
+
+**Don't trust the client's question index.** Early on, the client sent which question it was answering. A race condition between two rapid taps could send the same question index twice, recording a duplicate answer and skipping the next question. We removed the client-side index entirely — the server tracks position in Redis and ignores the client's claim about which question it's on.
+
+---
+
+## What I'd Do Differently
+
+If I rebuilt this today, three changes:
+
+1. **Use a proper state machine library** (like XState) instead of hand-rolling the category transitions. Our branching logic is a pile of if-else statements that only two people on the team understand. A formal state machine with a visual editor would make clinical pathway changes accessible to the product team.
+
+2. **Stream processing for risk detection.** Right now, risk checks are synchronous — they block the response to the client. At scale, I'd pipe answers through a lightweight event stream and have risk detection run as an async consumer. The patient gets their next question immediately; the risk system processes independently.
+
+3. **Versioned assessment protocols.** When we update a clinical pathway, every in-progress assessment is on the old version. We currently handle this by flushing all in-progress assessments before deploying changes, which means some patients lose progress. A versioned protocol — where the Redis state includes the protocol version and the state machine can run multiple versions simultaneously — would eliminate this.
+
+The assessment engine handles thousands of completions weekly and has caught genuine risk situations in real time. It's not the prettiest code I've written, but it's some of the most important.

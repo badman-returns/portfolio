@@ -1,0 +1,291 @@
+---
+title: "Building a Retry-Aware API Client with Silent Token Refresh"
+date: "2025-05-15"
+---
+
+Every frontend app that talks to an authenticated API eventually needs the same thing: an HTTP client that handles 401s gracefully, retries failed requests, queues concurrent calls during token refresh, and detects when the server is completely down. Most teams bolt these features on one by one over months. We built ours upfront — and it saved us from a dozen production issues.
+
+This is the architecture of our Axios-based secure API client. No external auth library. Just interceptors, a subscriber queue, and some carefully placed flags.
+
+---
+
+## The Setup
+
+The client is a singleton class wrapping an Axios instance:
+
+```typescript
+class SecureApiClient {
+  private axiosInstance: AxiosInstance;
+  private refreshState = {
+    isRefreshing: false,
+    failureCount: 0,
+    subscribers: [] as ((success: boolean) => void)[],
+  };
+  private maxRetries = 3;
+  private maxRefreshFailures = 3;
+  private lastServerDownTime = 0;
+  private serverDownCooldown = 10_000;
+
+  constructor() {
+    this.axiosInstance = axios.create({
+      baseURL: API_BASE_URL,
+      timeout: 30_000,
+      withCredentials: true,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    this.setupInterceptors();
+  }
+}
+```
+
+`withCredentials: true` is the key detail. Our auth is entirely cookie-based — the backend sets `httpOnly` cookies for both access and refresh tokens. The browser attaches them automatically. The request interceptor doesn't need to touch the `Authorization` header at all.
+
+---
+
+## The Response Interceptor Decision Tree
+
+Every failed request hits this logic:
+
+```
+Error received
+  ├── No request config?     → reject (malformed request)
+  ├── Should retry?          → exponential backoff + retry
+  ├── Is auth-related URL?   → reject (prevent refresh loops)
+  ├── Network error?         → handleServerDown() + reject
+  ├── Should refresh token?  → handleTokenRefresh()
+  └── Default                → reject with formatted error
+```
+
+The ordering matters. Retries are checked first because a 500 on a regular endpoint should be retried before we consider it an auth problem. Auth URLs (`/refresh`, `/logout`) are explicitly excluded from both retry and refresh logic to prevent infinite loops.
+
+---
+
+## Retry Logic
+
+Retries kick in for network errors and 5xx responses — anything that suggests a transient server problem:
+
+```typescript
+private shouldRetry(error: AxiosError, config: any): boolean {
+  const isRetryable = !error.response || error.response.status >= 500;
+  const underLimit = (config._retryCount || 0) < this.maxRetries;
+  const notAuthRoute = !['/refresh', '/logout', '/authentication']
+    .some(path => config.url?.includes(path));
+
+  return isRetryable && underLimit && notAuthRoute;
+}
+
+private async retry(config: any): Promise<any> {
+  config._retryCount = (config._retryCount || 0) + 1;
+  const delay = this.retryDelay * config._retryCount; // 1s, 2s, 3s
+  await new Promise(resolve => setTimeout(resolve, delay));
+  return this.axiosInstance(config);
+}
+```
+
+Linear backoff (1s, 2s, 3s) rather than exponential. For a client-side HTTP client, the difference is negligible — we're capping at 3 retries anyway and the total wait is never more than 6 seconds. Auth routes are excluded because retrying a failed `/refresh` would compound the problem.
+
+---
+
+## Silent Token Refresh with Request Queuing
+
+This is the interesting part. When a request returns 401, we don't immediately fail — we attempt a silent token refresh. But multiple requests might hit 401 simultaneously. We can't fire 10 refresh calls in parallel.
+
+The solution: a subscriber queue.
+
+```typescript
+private async handleTokenRefresh(originalRequest: any) {
+  originalRequest._retry = true;
+
+  if (!this.refreshState.isRefreshing) {
+    this.refreshState.isRefreshing = true;
+
+    try {
+      await axios.post(`${API_BASE_URL}/refresh`, {}, {
+        withCredentials: true,
+      });
+
+      this.refreshState.failureCount = 0;
+      this.notifySubscribers(true);
+      return this.axiosInstance(originalRequest);
+    } catch {
+      this.refreshState.failureCount++;
+
+      if (this.refreshState.failureCount >= this.maxRefreshFailures) {
+        this.handleAuthFailure();
+        return Promise.reject({ shouldRedirect: true });
+      }
+
+      this.notifySubscribers(false);
+      return Promise.reject(error);
+    } finally {
+      this.refreshState.isRefreshing = false;
+      this.refreshState.subscribers = [];
+    }
+  }
+
+  // Refresh already in progress — queue this request
+  return this.queueRequest(originalRequest);
+}
+```
+
+`queueRequest` pushes a callback into the subscribers array. The callback either retries the original request (on success) or rejects it (on failure):
+
+```typescript
+private queueRequest(config: any): Promise<any> {
+  return new Promise((resolve, reject) => {
+    this.refreshState.subscribers.push((success: boolean) => {
+      if (success) {
+        resolve(this.axiosInstance(config));
+      } else {
+        reject({ message: 'Token refresh failed' });
+      }
+    });
+  });
+}
+
+private notifySubscribers(success: boolean) {
+  this.refreshState.subscribers.forEach(cb => cb(success));
+}
+```
+
+Here's the scenario this handles: The user has 4 API calls in flight. The access token expires. All 4 get 401 responses nearly simultaneously. The first one triggers the refresh. The other 3 are queued. When the refresh succeeds, all 3 queued requests are re-fired with the new cookie. The user never sees an error.
+
+The `_retry` flag prevents loops — a request that already went through the refresh flow won't trigger another refresh if it fails again.
+
+### The Three-Strike Rule
+
+If the refresh call itself fails three times in a row, we stop trying. This prevents a broken refresh endpoint from creating an infinite retry loop. On the third failure, `handleAuthFailure()` clears all local state and forces a redirect to login.
+
+---
+
+## Server-Down Detection
+
+Network errors (no response at all) get special treatment:
+
+```typescript
+private isNetworkError(error: AxiosError): boolean {
+  if (error.response) return false;
+
+  const codes = ['ECONNREFUSED', 'ENOTFOUND', 'ECONNABORTED'];
+  const messages = ['Network Error', 'ERR_NETWORK', 'ERR_INTERNET_DISCONNECTED'];
+
+  return codes.includes(error.code || '') ||
+    messages.some(msg => error.message?.includes(msg));
+}
+
+private handleServerDown() {
+  const now = Date.now();
+  if (now - this.lastServerDownTime < this.serverDownCooldown) return;
+
+  this.lastServerDownTime = now;
+  window.dispatchEvent(new CustomEvent('server:down', {
+    detail: { timestamp: now }
+  }));
+}
+```
+
+The cooldown prevents rapid-fire server-down events. If the server is unreachable, every in-flight request would trigger the detection — but we only need to notify the UI once per 10-second window.
+
+Recovery is equally simple: any successful response where `lastServerDownTime > 0` dispatches a `server:up` event and resets the timer:
+
+```typescript
+// In the success interceptor
+if (this.lastServerDownTime > 0) {
+  this.lastServerDownTime = 0;
+  window.dispatchEvent(new CustomEvent('server:up'));
+}
+```
+
+---
+
+## Auth Failure and the DOM Event Bridge
+
+When auth is completely busted (3 refresh failures), the API client needs to tell the React tree to redirect to login. But the API client is a plain TypeScript class — it doesn't have access to React context or router.
+
+We bridge the gap with custom DOM events:
+
+```typescript
+private handleAuthFailure() {
+  if (this.isHandlingAuthFailure) return; // re-entrancy guard
+  this.isHandlingAuthFailure = true;
+
+  // Reset all refresh state
+  this.refreshState = { isRefreshing: false, failureCount: 0, subscribers: [] };
+
+  // Clear persisted session
+  authPersistence.clearAuthState();
+
+  // Notify mobile WebView if running inside native app
+  webViewBridge.notifyAuthStateChange(false);
+
+  // Tell the React tree
+  window.dispatchEvent(new CustomEvent('auth:logout'));
+
+  setTimeout(() => { this.isHandlingAuthFailure = false }, 1000);
+}
+```
+
+The `AuthContext` React component listens for `auth:logout`:
+
+```typescript
+useEffect(() => {
+  const handleForceLogout = () => {
+    setAuthState('unauthenticated');
+    authPersistence.clearAuthState();
+  };
+  window.addEventListener('auth:logout', handleForceLogout);
+  return () => window.removeEventListener('auth:logout', handleForceLogout);
+}, []);
+```
+
+This pattern — non-React singleton communicating with React tree via DOM events — appears in several places in the codebase. It's unglamorous but avoids circular dependencies between the API client and the auth context.
+
+---
+
+## Session Persistence
+
+The auth state is persisted in `sessionStorage` (not `localStorage`):
+
+```typescript
+class AuthPersistence {
+  saveAuthState(state: AuthState) {
+    const data = {
+      isAuthenticated: true,
+      user: { id, phoneNumber, role, name },
+      lastAuthCheck: Date.now(),
+      sessionId: `session_${Date.now()}_${Math.random()}`,
+    };
+    sessionStorage.setItem('auth_state', JSON.stringify(data));
+  }
+
+  loadAuthState(): AuthState | null {
+    const raw = sessionStorage.getItem('auth_state');
+    if (!raw) return null;
+    const state = JSON.parse(raw);
+
+    // Expire after 24 hours
+    if (Date.now() - state.lastAuthCheck > 24 * 60 * 60 * 1000) {
+      this.clearAuthState();
+      return null;
+    }
+    return state;
+  }
+}
+```
+
+`sessionStorage` means the auth state doesn't survive tab closure, which is the right default for a health-tech app. The 24-hour expiry is a safety net — if the tab stays open overnight, we force re-authentication.
+
+On app load, `AuthContext` checks persistence first. If valid, it restores auth state instantly (no network call). If not, it fires `GET /me` to verify the cookie session. This means returning users see the dashboard immediately instead of a loading spinner.
+
+---
+
+## What I'd Change
+
+**Replace DOM events with an event bus.** Custom DOM events work, but they're stringly-typed and don't play well with TypeScript. A lightweight event emitter (`mitt` or similar) with typed events would catch integration bugs at compile time.
+
+**Add request deduplication.** Right now, if two components fire the same GET request simultaneously, both go through. A dedup layer keyed on `method + url + params` could coalesce identical in-flight requests.
+
+**Track retry metrics.** We have no visibility into how often retries and token refreshes happen in production. Adding lightweight counters (even just to `console.warn` in dev) would help identify backend stability issues earlier.
+
+The API client handles about 50 different endpoints across patient assessment, doctor scheduling, appointment management, and payment flows. The retry and refresh logic has prevented hundreds of user-visible errors — most users have no idea their token was silently refreshed mid-session.

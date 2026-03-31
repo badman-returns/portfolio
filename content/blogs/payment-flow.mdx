@@ -1,0 +1,298 @@
+---
+title: "Shipping a Payment Flow Across Web and Native Without Losing Your Mind"
+date: "2025-10-05"
+---
+
+We built a payment flow that works on three surfaces: React web app, React Native Android app, and a WebView that wraps the web app inside the native app. Same checkout code. Three completely different execution environments. This is the story of getting Razorpay payments to work reliably across all of them — and the bridge protocol that made it possible.
+
+---
+
+## The Problem
+
+The product is a telemedicine platform. Patients book sessions with doctors and pay via Razorpay. The web app runs in a browser. The mobile app is a React Native shell with a WebView that loads the web app. Same React code, but the WebView can't use Razorpay's JavaScript SDK the same way a browser does — popup blockers, cookie isolation, and iframe restrictions all conspire to break the checkout flow.
+
+We needed the web app to detect whether it's running inside a WebView and, if so, delegate the payment to the native layer — which has access to Razorpay's native Android SDK.
+
+Three environments, one codebase, one checkout component.
+
+---
+
+## The Dual-Path Architecture
+
+The `PaymentCheckout` component in the web app makes a single decision at checkout time:
+
+```typescript
+const handlePayment = async () => {
+  const order = await createRazorpayOrder(appointmentData);
+  
+  if (isReactNative()) {
+    // Delegate to native app via WebView bridge
+    sendToNative({
+      type: 'PAYMENT_REQUEST',
+      payload: {
+        orderId: order.id,
+        amount: order.amount,
+        currency: 'INR',
+        prefill: { name, email, contact },
+      }
+    });
+  } else {
+    // Use Razorpay web SDK directly
+    openRazorpayCheckout(order);
+  }
+};
+```
+
+`isReactNative()` checks a flag that the native app sets during initialization. When the mobile app loads the WebView, it sends a `PLATFORM_INFO` message containing `{ isReactNative: true, platform: 'android', ... }`. The web app stores this and uses it to branch payment behavior.
+
+This sounds simple. The complexity is in the bridge protocol and the failure modes.
+
+---
+
+## The WebView Bridge
+
+Communication between the React web app and the React Native shell happens via `window.postMessage`. We built a singleton bridge service that handles serialization, routing, and response matching:
+
+```typescript
+class WebViewBridge {
+  private static instance: WebViewBridge;
+  private listeners: Map<string, Set<(data: any) => void>> = new Map();
+  private isNative: boolean = false;
+  private platformInfo: PlatformInfo | null = null;
+
+  send(type: string, payload: any) {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify({ type, payload })
+      );
+    }
+  }
+
+  on(type: string, callback: (data: any) => void) {
+    if (!this.listeners.has(type)) {
+      this.listeners.set(type, new Set());
+    }
+    this.listeners.get(type)!.add(callback);
+  }
+}
+```
+
+On the React Native side, the WebView's `onMessage` handler parses the message and dispatches:
+
+```typescript
+const handleWebViewMessage = async (event) => {
+  const { type, payload } = JSON.parse(event.nativeEvent.data);
+  
+  switch (type) {
+    case 'PAYMENT_REQUEST':
+      try {
+        const result = await PaymentService.processPayment(payload);
+        webViewRef.current.postMessage(JSON.stringify({
+          type: 'PAYMENT_SUCCESS',
+          payload: result
+        }));
+      } catch (error) {
+        webViewRef.current.postMessage(JSON.stringify({
+          type: 'PAYMENT_FAILURE',
+          payload: { error: error.message, orderId: payload.orderId }
+        }));
+      }
+      break;
+      
+    case 'USER_LOGGED_IN':
+      await NotificationService.initialize(payload);
+      break;
+      
+    case 'USER_LOGGED_OUT':
+      await NotificationService.cleanup();
+      break;
+  }
+};
+```
+
+The message types are:
+
+| Message | Direction | Purpose |
+|---------|-----------|---------|
+| `PLATFORM_INFO` | Native → Web | Identify WebView environment |
+| `PAYMENT_REQUEST` | Web → Native | Trigger native checkout |
+| `PAYMENT_SUCCESS` | Native → Web | Payment completed |
+| `PAYMENT_FAILURE` | Native → Web | Payment failed or cancelled |
+
+There's no request-response correlation ID. Payment is the only flow that needs a round-trip response, and since only one payment can be in flight at a time, we didn't need one. If we added more bidirectional flows, we'd need to add message IDs.
+
+---
+
+## Native Payment Processing
+
+On the React Native side, `PaymentService` wraps the `react-native-razorpay` native module:
+
+```typescript
+class PaymentService {
+  static async processPayment(payload: PaymentRequestPayload) {
+    if (isExpoGo()) {
+      throw new Error('Razorpay requires a native build');
+    }
+
+    const options = {
+      key: RAZORPAY_KEY_ID,
+      amount: payload.amount,
+      currency: payload.currency,
+      order_id: payload.orderId,
+      name: 'Dilsay Care',
+      prefill: payload.prefill,
+      theme: { color: '#636AE8' },
+    };
+
+    const result = await RazorpayCheckout.open(options);
+    
+    // Verify payment server-side before confirming
+    await this.verifyPayment({
+      orderId: payload.orderId,
+      paymentId: result.razorpay_payment_id,
+      signature: result.razorpay_signature,
+    });
+
+    return result;
+  }
+}
+```
+
+The `isExpoGo()` check is important. Razorpay's native module doesn't work in Expo Go — it requires a custom dev client or a production build. During development, we needed a graceful fallback rather than a crash. The service throws a descriptive error that the bridge forwards back to the web app, which can show a "please use desktop checkout" message.
+
+---
+
+## Server-Side Verification: Defense in Depth
+
+Here's where it gets serious. Payment verification can't trust the client. Ever.
+
+When a payment completes (either via web SDK callback or native bridge), the client sends the `razorpay_payment_id`, `razorpay_order_id`, and `razorpay_signature` to our backend. Verification happens in two steps:
+
+### Step 1: HMAC Signature Verification
+
+Razorpay signs the payment with your secret key. We verify the signature server-side:
+
+```typescript
+const expectedSignature = crypto
+  .createHmac('sha256', RAZORPAY_KEY_SECRET)
+  .update(`${orderId}|${paymentId}`)
+  .digest('hex');
+
+if (expectedSignature !== signature) {
+  throw new UnauthorizedError('Payment signature verification failed');
+}
+```
+
+This proves Razorpay actually processed the payment — the client couldn't have forged the signature without the secret key.
+
+### Step 2: Razorpay API Cross-Check
+
+As defense in depth, we also fetch the payment directly from Razorpay's API:
+
+```typescript
+const payment = await razorpay.payments.fetch(paymentId);
+
+if (payment.order_id !== orderId || payment.status !== 'captured') {
+  throw new BadRequestError('Payment verification failed');
+}
+```
+
+This catches edge cases where the signature is valid but the payment was refunded or in an unexpected state. Belt and suspenders.
+
+### The Post-Verification Chain
+
+After verification, the server executes a sequence of side effects:
+
+1. Updates the payment record to `completed`
+2. Confirms the doctor's time slot (marks it booked)
+3. Creates a Google Meet link for the session
+4. Updates the appointment status to `confirmed`
+5. Sends push notifications to both patient and doctor
+
+Each step runs independently with defensive error handling — if Google Meet creation fails, the payment and appointment still succeed. The design is intentionally *not* an atomic transaction:
+
+```typescript
+// Update payment status
+await PaymentTransaction.updateStatus(paymentId, 'completed');
+
+// Confirm slot — don't fail the whole flow if this errors
+try {
+  await DoctorSchedule.confirmSlot(slotId);
+} catch (err) {
+  logger.error('Slot confirmation failed', { paymentId, err });
+}
+
+// Create meeting link — best effort
+try {
+  const meetLink = await GoogleCalendar.createEvent(appointmentData);
+  await Appointment.updateMeetLink(appointmentId, meetLink);
+} catch (err) {
+  logger.error('Meet link creation failed', { appointmentId, err });
+}
+
+await Notification.sendBoth(patientId, doctorId, notificationData);
+```
+
+We considered wrapping everything in a Knex transaction but decided against it. The payment has already been captured by Razorpay — we can't roll that back from our side. If a downstream step fails (Google API timeout, notification service down), we'd rather complete the appointment and fix the missing meeting link later than fail the entire flow and leave the patient in limbo with money deducted. A reconciliation job catches any inconsistencies.
+
+---
+
+## The Webhook: Trust But Verify
+
+Client-side verification handles the happy path. But what about:
+- The user closes the app after paying but before the client sends verification
+- The bridge `postMessage` fails silently
+- The web app crashes during the callback
+
+For these, Razorpay sends a server-to-server webhook. We have a `/payment/webhook` endpoint that:
+
+1. Verifies the webhook signature (different from payment signature — uses the webhook secret)
+2. Checks if the payment has already been processed (idempotency)
+3. If not, runs the same post-verification chain
+
+The idempotency check is critical. The happy path processes the payment via the client verification endpoint. The webhook arrives seconds later. Without deduplication, you'd create two appointments for one payment.
+
+```typescript
+const existing = await PaymentTransaction.findByOrderId(orderId);
+if (existing && existing.status === 'completed') {
+  return res.json({ status: 'already_processed' });
+}
+```
+
+---
+
+## The Recovery Endpoint
+
+Sometimes everything fails. The client verification didn't fire, the webhook is delayed, and the patient is staring at a "processing" spinner. For this, we have a polling endpoint:
+
+```
+GET /payment/status/:orderId
+```
+
+The web app polls this every 3 seconds after initiating a payment. If the server has already processed the payment (via webhook or a prior verification attempt), it returns the appointment details and the client moves forward. If the payment is still pending after 30 seconds, we fetch the status directly from Razorpay's API and reconcile.
+
+There's also a cron job that runs every 10 minutes, finds all payment orders older than 30 minutes that are still in `pending` status, checks their actual status with Razorpay, and either completes or expires them.
+
+---
+
+## Failure Modes We Hit in Production
+
+**Bridge message drops.** On Android, `postMessage` can silently fail if the WebView is in the background or the page is unloading. The native app sends `PAYMENT_SUCCESS`, but the web app never receives it. The patient sees a failure screen despite being charged. Fix: the recovery polling endpoint catches this within 3-6 seconds.
+
+**Razorpay SDK popup blocked.** On some mobile browsers (not the WebView), Razorpay's checkout.js opens a popup that gets blocked. The checkout fails silently — no error callback. We added a timeout: if the Razorpay callback doesn't fire within 60 seconds of opening the checkout, assume it was blocked and show an error with a retry button.
+
+**Double-tap race condition.** Patients tapping the "Pay" button twice could initiate two Razorpay orders. The second one would fail at slot booking (doctor's slot already taken by the first), but the payment would still process. Fix: disable the button on first tap and use a server-side mutex (Redis lock on `payment:{userId}`) to reject concurrent order creation.
+
+**Expo Go confusion.** During development, testers would open the app in Expo Go (which can't load the Razorpay native module) and report that payments were broken. The `isExpoGo()` check now shows a clear "This feature requires a production build" message instead of crashing.
+
+---
+
+## What I'd Change
+
+**Add correlation IDs to bridge messages.** Right now, the bridge protocol assumes one in-flight payment. If we ever need bidirectional request-response for other features (camera access, file picker, biometric auth), we'll need message IDs and a response matching system.
+
+**Use a proper state machine for payment status.** The current flow (`pending → processing → completed/failed/expired`) is managed through database status fields and conditional checks. A formal state machine would prevent invalid transitions and make the recovery logic more explicit.
+
+**Abstract the bridge protocol.** The `switch` statement in `handleWebViewMessage` grows with every new native feature. A plugin-based handler registry — where each native capability registers its own message types and handlers — would scale better.
+
+The payment flow has processed thousands of transactions. The dual-path architecture means the same React component works on desktop browsers, mobile browsers, and inside the native app's WebView. It's more complex than a single-platform solution, but the alternative was maintaining two separate checkout implementations — and keeping them in sync would have been worse.

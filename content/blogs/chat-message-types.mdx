@@ -1,0 +1,254 @@
+---
+title: "Rendering 20 Message Types in a Chat UI Without Losing Your Mind"
+date: "2025-07-10"
+---
+
+Our chat screen renders 20 different message types — text bubbles, radio buttons, doctor recommendation cards, date pickers, payment checkouts, session timers, and more. Each has its own layout, interactivity rules, and data shape. Only the last message in the list is interactive. And three different hooks can push messages into the same Redux store simultaneously.
+
+Here's how we structured it to stay maintainable at scale.
+
+---
+
+## The Message Type Catalog
+
+Every message in the chat is an `AssessmentEvent` — a single interface that carries a `type` field and a flat `payload` object:
+
+```typescript
+export const MESSAGE_TYPE = {
+  TEXT: 'TEXT',
+  RADIO: 'RADIO',
+  CHECKBOX: 'CHECKBOX',
+  SINGLE_SELECT: 'SINGLE_SELECT',
+  MULTI_SELECT: 'MULTI_SELECT',
+  DOCTOR_DETAILS: 'DOCTOR_DETAILS',
+  DOCTOR_RECOMMENDATION: 'DOCTOR_RECOMMENDATION',
+  DATE_SELECT: 'DATE_SELECT',
+  SESSION_TIMING: 'SESSION_TIMING',
+  PAYMENT_CHECKOUT: 'PAYMENT_CHECKOUT',
+  SESSION_INFO: 'SESSION_INFO',
+  RESCHEDULE_CONFIRM: 'RESCHEDULE_CONFIRM',
+  RESCHEDULE_DATE_INFO: 'RESCHEDULE_DATE_INFO',
+  NEXT_STEPS: 'NEXT_STEPS',
+  FOLLOW_UP: 'FOLLOW_UP',
+  ASSESSMENT_QUESTION: 'ASSESSMENT_QUESTION',
+  ASSESSMENT_RESULT: 'ASSESSMENT_RESULT',
+  // ... more
+} as const;
+```
+
+Twenty enum values. Two of them — `ASSESSMENT_QUESTION` and `ASSESSMENT_RESULT` — are dead code. They exist in the constant file but no switch case renders them and no backend event emits them. We kept them because removing enum values from a socket-event-driven system without coordinating deployed backend and frontend is asking for trouble.
+
+---
+
+## The Rendering Switch
+
+`Chat.tsx` maps over the Redux messages array and delegates to `renderMessage`:
+
+```tsx
+{messages.map((message, index) => (
+  <div key={message.id}>
+    {renderMessage(message, index === messages.length - 1)}
+  </div>
+))}
+```
+
+Inside `renderMessage`, a switch statement returns the right component:
+
+```tsx
+const renderMessage = (event: AssessmentEvent, isLastMessage: boolean) => {
+  const commonProps = {
+    label: event.label,
+    payload: event.payload,
+    isLastMessage,
+    onSelect: handleSelect,
+    onSubmit: handleSubmit,
+    // ... more handler callbacks
+  };
+
+  switch (event.type) {
+    case MESSAGE_TYPE.TEXT:
+      return <TextMessage {...commonProps} />;
+    case MESSAGE_TYPE.RADIO:
+      return <RadioMessage {...commonProps} />;
+    case MESSAGE_TYPE.DOCTOR_RECOMMENDATION:
+      return <DoctorRecommendationMessage {...commonProps} />;
+    case MESSAGE_TYPE.PAYMENT_CHECKOUT:
+      return <PaymentCheckout {...commonProps} />;
+    case MESSAGE_TYPE.DATE_SELECT:
+      return <DateSelectMessage {...commonProps} />;
+    case MESSAGE_TYPE.SESSION_TIMING:
+      return <SessionTimingMessage {...commonProps} />;
+    // ... 18 cases total
+    default:
+      return <TextMessage {...commonProps} />;
+  }
+};
+```
+
+Eighteen switch cases for a working set of 16 unique components — a couple of types share implementation (`DateSelectMessage` handles both `SELECT_DATE` and `RESCHEDULE_SLOTS`, `Within24HrWarningMessage` handles both `WITHIN_24HR_WARNING` and `RESCHEDULE_24HR_WARNING`). The default case returns `null` — if the backend sends a type we don't recognize, it renders nothing. You could argue a `TextMessage` fallback would be friendlier, but silently swallowing unknown types is safer than rendering potentially garbled data.
+
+---
+
+## The `commonProps` Pattern
+
+Rather than defining per-component prop interfaces and mapping payloads individually, we build one `commonProps` object before the switch. Every component receives the same shape:
+
+```typescript
+const commonProps = {
+  label: event.label,
+  payload: event.payload,
+  isLastMessage,
+  onSelect: handleSelection,
+  onSubmit: handleSubmit,
+  onDateSelect: handleDateSelect,
+  onTimeSelect: handleTimeSelect,
+  onPaymentInitiate: handlePayment,
+};
+```
+
+Each component destructures only what it needs. `TextMessage` uses `label`. `RadioMessage` uses `payload.options` and `onSelect`. `PaymentCheckout` uses `payload` and `onPaymentInitiate`. The rest is ignored.
+
+This trades type precision for velocity. With 18 components, maintaining per-component mapped prop types would add meaningful overhead. The `commonProps` approach means adding a new message type is: write the component, add one switch case, done.
+
+The downside is obvious: you can't look at the switch statement and know which data each component actually depends on. In TypeScript terms, we're passing a union where discriminated types would be more correct. In practice, each component is self-documenting — if `RadioMessage` needs options, you look at `RadioMessage.tsx`.
+
+---
+
+## The `isLastMessage` Pattern
+
+This is the single most important architectural decision in the chat. Only the last message in the list is interactive. Previous messages are frozen — rendered as read-only history.
+
+```tsx
+// Inside RadioMessage
+if (!isLastMessage) {
+  return (
+    <div className="opacity-60">
+      <p>{label}</p>
+      {selectedOption && <Chip>{selectedOption.label}</Chip>}
+    </div>
+  );
+}
+
+return (
+  <div>
+    <p>{label}</p>
+    {options.map(opt => (
+      <button key={opt.value} onClick={() => onSelect(opt)}>
+        {opt.label}
+      </button>
+    ))}
+  </div>
+);
+```
+
+Fourteen of the 16 components check `isLastMessage` to decide their render mode. This enforces a linear flow: the assessment is a guided conversation, not a form. You answer the current question, the backend processes it, and pushes the next message. Going back means restarting.
+
+Why not just disable buttons globally? Because each message type has a different "frozen" appearance. A radio message shows the selected chip. A date selector shows the chosen date as text. A payment checkout shows the transaction status. The read-only rendering is visually distinct per type.
+
+---
+
+## The Payload Problem
+
+This is the part that breaks conventions. `AssessmentEvent.payload` is a flat object with over 40 optional fields:
+
+```typescript
+interface MessagePayload {
+  text?: string;
+  options?: Option[];
+  doctor?: DoctorInfo;
+  doctors?: DoctorInfo[];
+  date?: string;
+  timeSlots?: TimeSlot[];
+  amount?: number;
+  sessionId?: string;
+  appointmentId?: string;
+  prescriptionUrl?: string;
+  rescheduleReason?: string;
+  availableDates?: string[];
+  sessionDuration?: number;
+  // ... and more
+}
+```
+
+This is not a discriminated union. It's a grab bag. `DOCTOR_RECOMMENDATION` populates `doctors`. `PAYMENT_CHECKOUT` populates `amount` and `appointmentId`. `DATE_SELECT` populates `availableDates`. But nothing at the type level connects `event.type === 'PAYMENT_CHECKOUT'` to `payload.amount` being defined.
+
+We considered refactoring to a discriminated union:
+
+```typescript
+type Message =
+  | { type: 'TEXT'; payload: { text: string } }
+  | { type: 'RADIO'; payload: { options: Option[] } }
+  | { type: 'PAYMENT_CHECKOUT'; payload: { amount: number; appointmentId: string } };
+```
+
+We didn't. The backend sends these events over WebSocket, and the payload shape isn't guaranteed to be stable across versions. A flat optional interface is forgiving — if the backend adds a field, nothing breaks. If it removes one, the component handles `undefined` gracefully. A strict discriminated union would throw type errors on every backend change.
+
+---
+
+## Three Hooks, One Message Store
+
+Three different hooks can push messages into the Redux chat store. Each handles a different interaction mode:
+
+### `useChat` — The Socket Driver
+
+This is the primary hook. It listens for socket events (`assessment`, `recommendation`, `incoming`) and appends messages to Redux:
+
+```typescript
+socket.on('assessment', (event: AssessmentEvent) => {
+  dispatch(setMessage(event));
+});
+```
+
+The assessment flow — symptom questions, doctor matching, appointment booking — is entirely socket-driven. The backend pushes events, the frontend renders them. No polling, no REST calls during the core flow.
+
+### `useClinicalAssessment` — The Ack-Based Hook
+
+Clinical assessments (PHQ-9, GAD-7) use a different protocol. Instead of listening for socket events, this hook uses `emitWithAck` — it sends a socket event and waits for the server's response:
+
+```typescript
+const response = await socket.emitWithAck('clinical_assessment', {
+  assessmentId,
+  questionId,
+  answer: selectedOption,
+});
+```
+
+It constructs TEXT and RADIO messages locally and pushes them to the same Redux store. It also hijacks the `onSelect` callback of `RadioMessage` — when the user picks an option, the hook intercepts it, sends the ack event, and pushes the next question. The component itself doesn't know it's being driven by a different hook.
+
+### `useReschedule` — The Hybrid Hook
+
+Rescheduling is primarily REST-based — it calls service endpoints for fetching available slots, accepting, and rejecting reschedule requests. But it also fires socket events to notify the other party in real-time:
+
+```typescript
+const handleRescheduleConfirm = async (data) => {
+  const result = await rescheduleService.confirmReschedule(data);
+  dispatch(addRescheduleMessage({
+    type: MESSAGE_TYPE.RESCHEDULE_CONFIRM,
+    payload: result,
+  }));
+  // Notify the other party via socket
+  socket.emit('appointment_rescheduled', { appointmentId: data.appointmentId });
+};
+```
+
+Same Redux store, same rendering pipeline. The data comes from REST, but socket events keep both parties synchronized.
+
+---
+
+## Why This Works (and Where It Doesn't)
+
+The architecture scales to 20 message types because each type is isolated: one file, one component, one switch case. Adding type 21 doesn't touch any existing code.
+
+The `isLastMessage` pattern enforces linear flow without complex state machines. The chat is append-only — messages are never modified after insertion. This makes the Redux store trivially simple: an array with `push`.
+
+The `commonProps` approach sacrifices type safety for velocity. It's the right trade for a codebase where the message catalog changes monthly.
+
+Where it struggles:
+
+**Dead code accumulation.** Two message types are already dead. Without automated detection (tree-shaking doesn't catch runtime-dispatched switch cases), more will accumulate.
+
+**Flat payload makes debugging hard.** When a `PAYMENT_CHECKOUT` message renders blank, you have to manually check which of the 30 optional fields is undefined. A discriminated union would surface this at compile time.
+
+**Three hooks pushing to one store means ordering isn't guaranteed.** If `useChat` and `useReschedule` both push messages in the same render cycle, the order depends on dispatch timing. In practice this hasn't caused visible bugs because the three hooks operate in non-overlapping phases of the user journey, but it's a latent race condition.
+
+The chat system handles the full patient journey: initial assessment through doctor matching, scheduling, payment, and session management. The 20-type switch statement is the backbone, and `isLastMessage` is the trick that keeps it a guided conversation rather than a chaotic dashboard.

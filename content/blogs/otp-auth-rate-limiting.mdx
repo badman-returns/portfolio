@@ -1,0 +1,307 @@
+---
+title: "OTP Auth, Rate Limiting, and the Token Refresh Dance"
+date: "2025-04-20"
+---
+
+Phone-based OTP authentication sounds simple: send code, verify code, issue token. In production, it's a minefield. Users hammer the resend button. Bots script the OTP endpoint. Tokens expire mid-session. Refresh tokens get stolen. SMS providers fail silently.
+
+Here's how we built OTP auth for a telemedicine platform — from crypto-safe code generation through cookie-based JWT delivery, escalating rate limits, and the full token refresh lifecycle.
+
+---
+
+## OTP Generation
+
+In production, OTP codes are generated with Node's `crypto` module:
+
+```typescript
+const otp = crypto.randomInt(100000, 999999).toString();
+```
+
+`crypto.randomInt` uses a cryptographically secure random number generator. We explicitly avoid `Math.random()` — it's not cryptographically random and its output can be predicted if the internal state is leaked.
+
+In development, a constant OTP (`654321`) is used to skip SMS delivery entirely:
+
+```typescript
+const otp = config.USE_CONSTANT_OTP ? config.CONSTANT_OTP : crypto.randomInt(100000, 999999).toString();
+```
+
+This is toggled by environment variables and controlled in Docker Compose. There's no code path where a constant OTP leaks into production — the `USE_CONSTANT_OTP` flag is `false` in the production env config and the staging/prod Docker builds don't set it.
+
+---
+
+## OTP Storage and One-Active-Per-Phone
+
+OTPs are stored in PostgreSQL, not Redis. The table has a `phone_number`, `otp_code`, `expires_at`, and a `verified` flag:
+
+```sql
+INSERT INTO otp_codes (phone_number, otp_code, expires_at)
+VALUES ($1, $2, NOW() + INTERVAL '5 minutes')
+ON CONFLICT (phone_number) DO UPDATE
+SET otp_code = $2, expires_at = NOW() + INTERVAL '5 minutes', verified = false;
+```
+
+`ON CONFLICT` on `phone_number` ensures only one active OTP exists per phone number. If the user requests a new code, it overwrites the previous one. No accumulation, no confusion about which code is valid.
+
+Why PostgreSQL instead of Redis? The OTP table participates in transactional queries with the users table (creating a user record on first verification). Keeping it in the same database means we can wrap the entire verify-and-create-user flow in a single `BEGIN`/`COMMIT`. Redis would have required coordinating two data stores.
+
+---
+
+## Anti-Abuse: Escalating Cooldowns
+
+Users will hammer the resend button. Our escalation system makes each successive resend slower:
+
+| Attempt | Cooldown |
+|---------|----------|
+| 1st | 15 seconds |
+| 2nd | 30 seconds |
+| 3rd | 45 seconds |
+| 4th | 60 seconds |
+| 5th+ | Blocked for 24 hours |
+
+The backend tracks `resend_count` per phone number. Each `/send-otp` request checks the count and returns the appropriate cooldown in the response for the frontend to enforce:
+
+```typescript
+const cooldowns = [15, 30, 45, 60];
+const cooldownSeconds = cooldowns[Math.min(resendCount, cooldowns.length - 1)];
+
+if (resendCount >= 5) {
+  throw new BadRequestError('Too many attempts. Try again after 24 hours.');
+}
+
+// Send OTP, then return cooldown hint to frontend
+return res.json({
+  success: true,
+  retry_after: `${cooldownSeconds}s`,
+});
+```
+
+The 5th-attempt block is the only hard server-side enforcement. The cooldown delays (15s to 60s) are advisory — the backend returns `retry_after` and the frontend disables the resend button for that duration. This is a pragmatic choice: server-side timers are more robust, but the rate limiter (covered below) provides the real abuse prevention. The escalating cooldowns are a UX signal, not a security boundary.
+
+The verification side relies on OTP expiry and the rate limiter rather than tracking incorrect attempts. A 6-digit code has 900,000 possible values, and with the OTP rate limiter allowing only 5 requests per 5 minutes, brute-force guessing isn't viable mathematically.
+
+---
+
+## SMS Delivery
+
+We use Fast2SMS for delivery to Indian phone numbers:
+
+```typescript
+const sendSMS = async (phoneNumber: string, otp: string) => {
+  const response = await axios.post('https://www.fast2sms.com/dev/bulkV2', {
+    route: 'dlt',
+    sender_id: config.SMS_SENDER_ID,
+    message: config.SMS_MESSAGE_ID,
+    variables_values: otp,
+    numbers: phoneNumber,
+  }, {
+    headers: { authorization: config.FAST2SMS_API_KEY },
+  });
+
+  if (!response.data?.return) {
+    throw new Error('SMS delivery failed');
+  }
+};
+```
+
+In development, SMS is completely skipped — the constant OTP means no SMS API calls, which avoids burning SMS credits during testing and removes an external dependency from the local dev loop.
+
+---
+
+## Token Issuance
+
+On successful OTP verification, the backend issues two tokens:
+
+**Access token** — short-lived JWT (15 minutes in production, 1 hour in development):
+
+```typescript
+const accessToken = jwt.sign(
+  { userId, phoneNumber, tokenId: uuidv4() },
+  config.SECRET,
+  { expiresIn: config.ACCESS_TOKEN_EXPIRY }
+);
+```
+
+**Refresh token** — long-lived JWT (30 days in production, 7 days in development):
+
+```typescript
+const refreshToken = jwt.sign(
+  { userId, tokenId: uuidv4() },
+  config.REFRESH_SECRET,
+  { expiresIn: config.REFRESH_TOKEN_EXPIRY }
+);
+```
+
+The refresh token is hashed with bcrypt before storage:
+
+```sql
+INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+VALUES ($1, $2, NOW() + INTERVAL '30 days')
+ON CONFLICT (user_id) DO UPDATE
+SET token_hash = $2, expires_at = NOW() + INTERVAL '30 days';
+```
+
+`ON CONFLICT (user_id)` means one refresh token per user. Logging in from a new device invalidates the previous session. This is simpler than maintaining a token family, and for a mobile-first health app, it's the right trade-off — users have one active device.
+
+---
+
+## Cookie-Based Delivery
+
+Both tokens are delivered as `httpOnly` cookies — not in the JSON response body:
+
+```typescript
+// Production
+res.cookie('access_token', accessToken, {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'strict',
+  path: '/',
+  domain: '.dilsaycare.in',
+});
+
+// Staging
+res.cookie('access_token', accessToken, {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'lax',
+  path: '/',
+  domain: '.dilsaycare.in',
+});
+
+// Development
+res.cookie('access_token', accessToken, {
+  httpOnly: true,
+  sameSite: 'lax',
+  path: '/',
+});
+```
+
+`httpOnly` means JavaScript can't read the tokens — no `document.cookie` access, which eliminates XSS-based token theft. The browser attaches cookies automatically on every request to the matching domain.
+
+The domain `.dilsaycare.in` (with the leading dot) allows the cookie to be shared across subdomains: `app.dilsaycare.in`, `api.dilsaycare.in`, `dev.dilsaycare.in`. This is critical — the frontend is on `app.` while the API is on `api.`.
+
+`sameSite: 'strict'` in production blocks the cookie from being sent on cross-site requests, preventing CSRF. Staging uses `'lax'` to allow OAuth redirects during testing. Development drops `secure` entirely because localhost doesn't have HTTPS.
+
+---
+
+## The `LoadAuthorization` Middleware
+
+Every protected route passes through this middleware:
+
+```typescript
+const LoadAuthorization = (req, res, next) => {
+  const token = req.cookies.access_token;
+
+  if (!token) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, config.SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expired' });
+    }
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+};
+```
+
+It reads exclusively from `req.cookies.access_token`. There's no `Authorization` header fallback. This simplifies the auth surface — there's exactly one way to authenticate, and it's enforced by the browser's cookie mechanics.
+
+---
+
+## Token Refresh
+
+When the frontend receives a 401, it calls `POST /refresh`. The refresh endpoint performs double verification:
+
+```typescript
+// 1. Verify JWT signature
+const decoded = jwt.verify(refreshToken, config.REFRESH_SECRET);
+
+// 2. Verify against database
+const stored = await getRefreshToken(decoded.userId);
+const isValid = await bcrypt.compare(refreshToken, stored.token_hash);
+
+if (!isValid) {
+  throw new UnauthorizedError('Invalid refresh token');
+}
+```
+
+First, the JWT signature is verified — this confirms the token wasn't tampered with. Second, the raw token is compared against the bcrypt hash in the database — this confirms the token hasn't been revoked. Both checks must pass.
+
+On success, the backend issues a fresh access token and a fresh refresh token. The old refresh token is overwritten in the database (via the `ON CONFLICT` UPSERT). This is full rotation: every refresh invalidates the previous refresh token. If an attacker captures a refresh token after it's been used, it's already invalid.
+
+---
+
+## Rate Limiting
+
+Six tiers, each tuned to its endpoint's abuse profile:
+
+| Tier | Limit | Window | Endpoints |
+|------|-------|--------|-----------|
+| OTP | 5 requests | 5 minutes | `/send-otp`, `/resend-otp` |
+| Auth | 10 requests | 1 minute | `/verify-otp`, `/refresh`, `/logout` |
+| General | 150 requests | 1 minute | All other endpoints |
+| Payment | 30 requests | 1 minute | `/payment/*` |
+| Admin | 300 requests | 1 minute | `/admin/*` |
+| Upload | 10 requests | 1 minute | File upload endpoints |
+
+The implementation uses Redis as the primary store, with an in-memory `Map` fallback:
+
+```typescript
+class RateLimiter {
+  private redisClient: Redis;
+  private fallbackStore: Map<string, { count: number; resetAt: number }>;
+
+  async checkLimit(key: string, limit: number, windowMs: number) {
+    try {
+      return await this.checkRedis(key, limit, windowMs);
+    } catch {
+      return this.checkMemory(key, limit, windowMs);
+    }
+  }
+}
+```
+
+If Redis is down, the in-memory fallback activates. If even that fails, the limiter is fail-open — requests proceed rather than blocking all users because the rate limiter crashed. This is deliberate: for a health platform, availability trumps abuse prevention.
+
+Rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`) are included in every response, so the frontend can show "try again in X seconds" without guessing.
+
+---
+
+## Logout
+
+Logout is intentionally simple:
+
+```typescript
+const logout = async (req, res) => {
+  const userId = req.user.userId;
+
+  // Delete refresh token from database
+  await deleteRefreshToken(userId);
+
+  // Clear cookies
+  res.clearCookie('access_token', cookieOptions);
+  res.clearCookie('refresh_token', cookieOptions);
+
+  return res.json({ message: 'Logged out' });
+};
+```
+
+The refresh token is deleted from the database. Cookies are cleared. The access token continues to be valid until its natural expiry (up to 15 minutes). We don't blacklist access tokens.
+
+This is a conscious trade-off. Blacklisting requires checking a revocation list on every request, which adds latency and a Redis dependency to the critical auth path. For a 15-minute access token window, the exposure is acceptable — and the refresh token (which grants long-term access) is immediately revoked.
+
+---
+
+## What I'd Change
+
+**Add refresh token families.** One refresh token per user means logging in on a second device kills the first session. Token families (one per device, tracked by device ID) would support multi-device scenarios without sacrificing revocation.
+
+**Blacklist access tokens on password/phone change.** If a user's phone number is compromised, the attacker has a 15-minute window with the existing access token. A lightweight blacklist (Redis set with TTL matching token expiry) would close this gap for sensitive account events.
+
+**Move OTP tracking to Redis.** The PostgreSQL OTP table works, but it creates write pressure on the primary database for what's essentially ephemeral data. Redis with TTL-based expiry would be more natural and reduce database writes during traffic spikes.
+
+The full auth system handles the lifecycle from first OTP through session management to logout. The escalating cooldowns, cookie-only delivery, and dual-verified refresh tokens make it production-grade for a health-tech platform where unauthorized access isn't just inconvenient — it's a compliance risk.

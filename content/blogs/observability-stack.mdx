@@ -1,0 +1,266 @@
+---
+title: "What I Learned Deploying a Full Observability Stack for a Side Project"
+date: "2025-06-10"
+---
+
+I spent a weekend adding Prometheus, Grafana, Loki, Tempo, and Alertmanager to a Node.js backend that serves maybe a few hundred users. It was overkill. I regret nothing. Here's what I learned — and what actually caught real production issues.
+
+---
+
+## Why Bother?
+
+The backend (Express + PostgreSQL + Redis + Socket.IO) was running fine. Users weren't complaining. The logs were going to stdout and disappearing into the void. When something broke, my debugging flow was: SSH into the server, grep through Docker logs, find the error, fix it, redeploy.
+
+This worked until it didn't. A memory leak crept in that only manifested after 4-5 days of uptime. By the time I noticed, the container had been OOM-killed and restarted three times. I had no memory usage history, no alerting, and no way to correlate the spike with a specific code change.
+
+That weekend, I decided to build the setup I actually wanted. The goal: see everything, get paged when things break, and trace requests from HTTP entry to database query. For a side project. Because why not.
+
+---
+
+## The Architecture
+
+Eight containers. One `docker-compose.yaml`. Here's the topology:
+
+```
+App (/metrics)  ──→  Prometheus  ──→  Alertmanager  ──→  Email
+                          ↓
+PostgreSQL  ──→  pg-exporter  ──→  Grafana (dashboards)
+Redis       ──→  redis-exporter       ↑
+Docker logs ──→  Promtail      ──→  Loki  ──┘
+App (OTLP)  ──→  Tempo  ───────────────────┘
+```
+
+**Prometheus** scrapes metrics from the app and the two database exporters every 10-15 seconds. It also evaluates alert rules and fires alerts to **Alertmanager**, which routes them to email (and optionally Slack). **Grafana** reads from Prometheus for dashboards, **Loki** for logs, and **Tempo** for traces. **Promtail** ships Docker container logs to Loki. The whole thing runs on the same VPS as the app.
+
+The `docker-compose.yaml` uses two networks: `monitoring` for internal communication and `coolify` for the reverse proxy that exposes Grafana to the internet.
+
+---
+
+## Instrumenting the App
+
+### Metrics (prom-client)
+
+The Node.js app exposes a `/metrics` endpoint using `prom-client`. I defined custom metrics beyond the defaults:
+
+```typescript
+// HTTP layer
+const httpRequestDuration = new Histogram({
+  name: 'http_request_duration_seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
+});
+
+const httpRequestTotal = new Counter({
+  name: 'http_requests_total',
+  labelNames: ['method', 'route', 'status_code'],
+});
+
+// WebSocket layer
+const socketConnectionsGauge = new Gauge({
+  name: 'socket_connections_active',
+  help: 'Number of active socket connections',
+});
+
+// Business metrics
+const activeAppointmentsGauge = new Gauge({
+  name: 'active_appointments',
+  help: 'Number of currently active appointments',
+});
+
+// Database layer
+const dbQueryDuration = new Histogram({
+  name: 'db_query_duration_seconds',
+  labelNames: ['operation'],
+  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1],
+});
+```
+
+The histogram bucket choices matter. For HTTP, the buckets range from 10ms to 5s — most API responses land in the 50-500ms range. For database queries, I shifted the buckets down: 1ms to 1s. Getting the buckets wrong means your P95/P99 calculations are inaccurate because Prometheus interpolates between bucket boundaries.
+
+I also added crash-tracking counters that turned out to be the most valuable metrics of all:
+
+```typescript
+const unhandledExceptionCounter = new Counter({
+  name: 'nodejs_unhandled_exceptions_total',
+  labelNames: ['error_type'],
+});
+
+const unhandledRejectionCounter = new Counter({
+  name: 'nodejs_unhandled_rejections_total',
+});
+
+const applicationErrorCounter = new Counter({
+  name: 'nodejs_application_errors_total',
+  labelNames: ['error_type', 'context'],
+});
+```
+
+Every `catch` block in the service layer calls `applicationErrorCounter.inc({ error_type: error.name, context: 'payment.verify' })`. This gives me error rates broken down by both type and business context — something generic error tracking tools charge serious money for.
+
+### Tracing (OpenTelemetry)
+
+Traces were the easiest part to set up and the hardest to make useful.
+
+The OpenTelemetry Node SDK with auto-instrumentation wires itself into HTTP, Express, pg, and ioredis automatically. The core config is straightforward:
+
+```typescript
+const sdk = new NodeSDK({
+  resource: resourceFromAttributes({
+    [ATTR_SERVICE_NAME]: 'nucleus',
+    [ATTR_SERVICE_VERSION]: '1.0.0',
+  }),
+  traceExporter: new OTLPTraceExporter({
+    url: 'http://tempo:4318',
+  }),
+  instrumentations: [
+    getNodeAutoInstrumentations({
+      '@opentelemetry/instrumentation-fs': { enabled: false },
+    }),
+  ],
+});
+sdk.start();
+```
+
+I disabled the `fs` instrumentation because it generates a staggering amount of noise — every file read (templates, configs, static assets at boot) becomes a span. The useful auto-instrumentations are HTTP (shows the full request lifecycle), Express (route matching), pg (actual SQL queries), and ioredis (Redis commands with keys).
+
+The critical detail: this file must be imported *before* any other module. OpenTelemetry monkey-patches `http`, `pg`, and `ioredis` at import time. If your app imports `pg` before the SDK starts, those connections won't be traced. I learned this by staring at empty trace waterfalls for 20 minutes.
+
+### Structured Logging (Winston → Loki)
+
+The app logs structured JSON to stdout via Winston. Promtail scrapes Docker container logs and parses the JSON:
+
+```yaml
+pipeline_stages:
+  - match:
+      selector: '{job="docker"}'
+      stages:
+        - json:
+            expressions:
+              level: level
+              message: message
+              timestamp: timestamp
+        - labels:
+            level:
+```
+
+This extracts the `level` field from each JSON log line and promotes it to a Loki label. In Grafana, I can filter by `{container="nucleus", level="error"}` to see only errors, or use LogQL to compute error rates over time.
+
+The label strategy matters more than you'd think. Loki's performance degrades with high-cardinality labels. I initially added `userId` as a label — seemed useful for filtering logs by user. This created thousands of unique label combinations and Loki's ingestion rate tanked. The fix: keep `userId` in the log payload (searchable with `| json | userId = "abc123"`) but not as an indexed label.
+
+---
+
+## Alert Rules That Actually Fired
+
+I defined eight alerts. Four of them have fired in production. Here's what caught real issues:
+
+### 1. NucleusDown (Severity: Critical)
+
+```yaml
+- alert: NucleusDown
+  expr: up{job="nucleus"} == 0
+  for: 1m
+```
+
+The simplest alert and the most common. Fires when Prometheus can't scrape the `/metrics` endpoint for 60 seconds. Caught: a misconfigured Dockerfile that passed health checks but crashed 30 seconds after startup (after the initial health check window but before the next scrape).
+
+### 2. UnhandledExceptions (Severity: Critical)
+
+```yaml
+- alert: UnhandledExceptions
+  expr: increase(nodejs_unhandled_exceptions_total[5m]) > 0
+  for: 0m
+```
+
+Zero delay — fires immediately on any unhandled exception. This caught a bug where a third-party SMS library threw synchronously inside an async handler. The `asyncHandler` wrapper couldn't catch it because it wasn't a rejected promise — it was a synchronous throw inside a `.then()` callback. Without this alert, the process would crash and restart silently.
+
+### 3. HighMemoryUsage (Severity: Warning)
+
+```yaml
+- alert: HighMemoryUsage
+  expr: process_resident_memory_bytes{job="nucleus"} > 500 * 1024 * 1024
+  for: 5m
+```
+
+The alert that justified the entire setup. Caught the memory leak I mentioned earlier — a Socket.IO event listener that was being registered on every connection but never removed on disconnect. Memory climbed by ~2MB per connection. With 100 daily users, it took about 4 days to hit the 500MB threshold. Grafana's memory graph made the leak pattern immediately obvious: a steady upward slope with no drops during low-traffic periods.
+
+### 4. HighLatency (Severity: Warning)
+
+```yaml
+- alert: HighLatency
+  expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 2
+  for: 5m
+```
+
+Caught a pathological N+1 query in the appointment listing endpoint. A code change introduced a loop that queried the doctor's profile for each appointment individually. P95 latency jumped from 200ms to 3.2 seconds. Without the alert, I would have noticed when users complained — probably days later.
+
+---
+
+## Connecting the Three Pillars
+
+The real payoff is when metrics, logs, and traces are linked together. Here's how I set that up.
+
+### Logs → Traces
+
+The Grafana datasource configuration for Loki includes a derived field that extracts trace IDs:
+
+```yaml
+- name: Loki
+  type: loki
+  jsonData:
+    derivedFields:
+      - datasourceUid: tempo
+        matcherRegex: "traceId=(\\w+)"
+        name: TraceID
+        url: "$${__value.raw}"
+```
+
+When I click on a log line in Grafana that contains a `traceId`, it opens the full trace in Tempo. I can jump from "payment verification failed" in the logs to the exact HTTP → Express → PostgreSQL → Redis span waterfall that shows where it broke.
+
+### Traces → Logs
+
+The Tempo datasource maps back:
+
+```yaml
+- name: Tempo
+  type: tempo
+  jsonData:
+    tracesToLogs:
+      datasourceUid: loki
+      filterByTraceID: true
+```
+
+From any trace, I can see the logs that were emitted during that request. This bidirectional linking is what turns a pile of observability tools into an actual debugging workflow.
+
+### Metrics → Everything
+
+When an alert fires (say, `HighErrorRate`), I:
+1. Open the Grafana dashboard → see which endpoint is producing 5xx errors
+2. Click through to Loki → filter `{level="error"}` around that timestamp
+3. Find the error log with trace ID → click to open the trace in Tempo
+4. See the exact span that failed (usually a database query or external API call)
+
+The whole flow takes under a minute. Before this setup, the same investigation involved SSH, `docker logs`, guessing, and 20+ minutes.
+
+---
+
+## What I Got Wrong
+
+**Retention settings need to match your billing.** I set Prometheus to 30 days and Loki to 30 days. On a modest VPS, disk usage crept up to 40% within two weeks. Tempo's 48-hour retention was the right call — traces are high-volume and rarely useful after a couple of days. I should have started Prometheus at 7 days and Loki at 14 days, then extended if disk allowed.
+
+**Alert fatigue is real, even for one person.** My initial alert configuration had `HighErrorRate` at a threshold of 0.05 errors/sec with a 1-minute `for` duration. A single flaky client retrying a bad request would trigger it. I raised the threshold to 0.1/sec and the duration to 2 minutes. Still catches real outages, ignores transient noise.
+
+**Prometheus scraping over HTTPS with self-signed certs is painful.** In production, Prometheus scrapes the app via `https://api.dilsaycare.in/metrics`. But the SSL termination happens at the reverse proxy, so the internal scrape target uses the public hostname. Getting Prometheus to accept the certificate chain required `tls_config` with `insecure_skip_verify: true` — not ideal, but the alternative was maintaining a separate internal CA.
+
+**Don't auto-provision Grafana dashboards until you're happy with them.** I provisioned three JSON dashboard files (API, PostgreSQL, Redis) on first boot. Then I spent hours tweaking panels in the Grafana UI, only to realize that provisioned dashboards are read-only. Changes were lost on container restart. The fix: develop dashboards in the UI first, export as JSON, then provision. Or set `editable: true` in the provisioning config and accept that the source of truth lives in Grafana's database.
+
+---
+
+## Was It Worth It?
+
+For a side project with a few hundred users? Objectively, no. A simple uptime check and log shipping to a free tier of some hosted service would cover 80% of the value.
+
+But subjectively, absolutely. I caught four real production issues through alerts before any user reported them. I can diagnose problems in under a minute instead of twenty. I have memory, latency, and error rate history going back a month. And I learned enough about Prometheus, Loki, and Tempo to deploy the same stack at a company that would actually need it.
+
+The total resource overhead: about 1.2GB of RAM for all eight containers combined. On a 4GB VPS, that's significant. On anything larger, it's negligible.
+
+If you're building a side project with real users and you've ever spent more than 10 minutes SSH-ing into a server to grep logs — just set this up. You'll lose a weekend. You'll gain the ability to sleep through the night knowing that if something breaks, your phone will buzz before your users notice.
