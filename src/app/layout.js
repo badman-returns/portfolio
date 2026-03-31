@@ -1,4 +1,6 @@
 import "./globals.css";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import Header from "./components/Header";
 
 const siteUrl = "https://trishgoswami.com";
@@ -90,7 +92,7 @@ export default function RootLayout({ children }) {
   };
 
   return (
-    <html lang="en" suppressHydrationWarning style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: 'html::-webkit-scrollbar{display:none}html{scrollbar-width:none;-ms-overflow-style:none}' }} />
         <script

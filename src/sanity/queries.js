@@ -4,6 +4,8 @@ export const postBySlugQuery = `
   publishedAt,
   mainImage,
   body,
+  excerpt,
+  categories[]->{title},
   author->{
     name,
     image
@@ -15,6 +17,18 @@ export const allPostsQuery = `
 *[_type == "post" && defined(slug.current) && defined(publishedAt)] | order(publishedAt desc) {
   title,
   "slug": slug.current,
-  publishedAt
+  publishedAt,
+  excerpt,
+  featured,
+  categories[]->{title}
+}
+`
+
+export const featuredPostsQuery = `
+*[_type == "post" && defined(slug.current) && defined(publishedAt)] | order(publishedAt desc) [0...2] {
+  title,
+  "slug": slug.current,
+  publishedAt,
+  excerpt
 }
 `

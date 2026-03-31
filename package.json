@@ -17,6 +17,7 @@
     "@sanity/image-url": "^1.2.0",
     "@sanity/vision": "^4.22.0",
     "@tailwindcss/typography": "^0.5.19",
+    "geist": "^1.7.0",
     "gray-matter": "^4.0.3",
     "gsap": "^3.14.2",
     "lucide-react": "^0.475.0",

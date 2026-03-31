@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { Github, Linkedin, Twitter, Mail } from "lucide-react";
+import { client } from "@/sanity/client";
+import { featuredPostsQuery } from "@/sanity/queries";
 import StatsSection from "./components/animated/StatsSection";
 import HomeOverview from "./components/HomeOverview";
+import FeaturedWriting from "./components/FeaturedWriting";
 import OrbitHero from "./components/animated/OrbitHero";
 import WaveBackground from "./components/animated/WaveBackground";
 import HomeScrollBehavior from "./components/animated/HomeScrollBehavior";
@@ -18,34 +21,38 @@ import {
 const focusCards = [
   {
     title: "Realtime Interface Engineering",
-    text: "Designing long-running UIs where market data, state updates, and correctness must stay stable under load.",
+    text: "Root-caused a 1GB memory leak on a live trading platform — incorrect useEffect dependency causing cascading re-renders on every WebSocket tick.",
     tag: "Systems thinking",
     num: "01",
-    accent: "#4f6d99",
-    accentLight: "#9fb7d8",
-    gradient: "from-[#4f6d99] to-[#9fb7d8]",
+    accent: "#CDFF52",
+    accentLight: "#d4ff70",
+    gradient: "from-[#CDFF52] to-[#a3e635]",
   },
   {
     title: "Production Debugging",
-    text: "Tracing failures that appear only in real user traffic: stale references, race conditions, and render churn.",
+    text: "Restructured Sentry SDK initialization and tree-shook wildcard imports to cut monitoring bundle from 400KB to 70KB — an 82% reduction.",
     tag: "Failure analysis",
     num: "02",
-    accent: "#6b8cbe",
-    accentLight: "#b8cfe8",
-    gradient: "from-[#6b8cbe] to-[#b8cfe8]",
+    accent: "#CDFF52",
+    accentLight: "#d4ff70",
+    gradient: "from-[#CDFF52] to-[#a3e635]",
   },
   {
     title: "Performance Architecture",
-    text: "Keeping large React surfaces fast by reducing wasted renders, tightening state boundaries, and profiling continuously.",
-    tag: "Render economics",
+    text: "Led geo-based routing and compliance gating for 500K+ existing users and 600K+ new sign-ups across jurisdictions — zero downtime migration.",
+    tag: "Scale",
     num: "03",
-    accent: "#5a7ba8",
-    accentLight: "#a8c4e0",
-    gradient: "from-[#5a7ba8] to-[#a8c4e0]",
+    accent: "#CDFF52",
+    accentLight: "#d4ff70",
+    gradient: "from-[#CDFF52] to-[#a3e635]",
   },
 ];
 
-export default function Home() {
+export const revalidate = 60;
+
+export default async function Home() {
+  const featuredPosts = await client.fetch(featuredPostsQuery);
+
   return (
     <div className="relative">
       <HomeScrollBehavior />
@@ -54,7 +61,7 @@ export default function Home() {
         {/* ================= SECTION 1: HERO ================= */}
         <section
           data-section
-          className="relative mx-auto flex flex-col px-4 sm:px-6 md:min-h-[calc(100vh-3.5rem)] md:max-w-6xl md:snap-start md:px-12"
+          className="relative mx-auto flex flex-col px-4 sm:px-6 md:min-h-[calc(100vh-3.5rem)] md:max-w-6xl md:px-12"
         >
           {/* Main hero content — centered in available space */}
           <div className="flex flex-1 items-center py-4 sm:py-6 md:py-0">
@@ -110,7 +117,7 @@ export default function Home() {
                 <GMagnetic className="w-full sm:w-auto">
                   <Link
                     href="/writing"
-                    className="inline-flex w-full min-w-[132px] items-center justify-center rounded-xl bg-[var(--accent)] px-5 py-2.5 font-medium text-white transition-opacity hover:opacity-90 sm:w-auto"
+                    className="inline-flex w-full min-w-[132px] items-center justify-center rounded-xl bg-[var(--accent)] px-5 py-2.5 font-medium text-black transition-opacity hover:opacity-90 sm:w-auto"
                   >
                     Read essays
                   </Link>
@@ -136,7 +143,7 @@ export default function Home() {
               Technologies I work with
             </p>
             <div className="flex flex-wrap gap-3">
-              {["React", "Next.js", "TypeScript", "Node.js", "WebSockets", "RxJS", "Redux", "Tailwind CSS", "GraphQL"].map((tech) => (
+              {["React", "React Native", "Next.js", "TypeScript", "Node.js", "WebSockets", "Redux", "Tailwind CSS", "Docker"].map((tech) => (
                 <span
                   key={tech}
                   data-pill
@@ -152,7 +159,7 @@ export default function Home() {
         {/* ================= SECTION 2: STATS + FOCUS ================= */}
         <section
           data-section
-          className="relative mx-auto flex flex-col justify-center px-4 py-16 sm:px-6 md:min-h-[calc(100vh-3.5rem)] md:max-w-6xl md:snap-start md:px-12 md:py-20"
+          className="relative mx-auto px-4 py-16 sm:px-6 md:max-w-6xl md:px-12 md:py-20"
         >
           <StatsSection />
 
@@ -211,7 +218,19 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 md:px-12 md:py-12">
+        <section
+          data-section
+          className="relative mx-auto px-4 py-16 sm:px-6 md:max-w-6xl md:px-12 md:py-20"
+        >
+          <FeaturedWriting posts={featuredPosts} />
+        </section>
+
+        {/* Gradient divider */}
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-12">
+          <div className="mx-auto h-px w-2/3 bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent" />
+        </div>
+
+        <section className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 md:px-12 md:py-20">
           <HomeOverview />
         </section>
 

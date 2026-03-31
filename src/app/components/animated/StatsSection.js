@@ -3,37 +3,46 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Clock3, Activity, ShieldCheck } from "lucide-react";
+import { TrendingDown, Users, Zap, BarChart3 } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const stats = [
   {
-    label: "Experience",
-    value: "6+",
-    suffix: "years",
-    detail: "Shipping production frontend systems",
-    icon: Clock3,
-    gradient: "from-[#4f6d99] to-[#9fb7d8]",
-    glow: "rgba(79,109,153,0.4)",
+    label: "Memory Reduction",
+    value: "60%",
+    suffix: "",
+    detail: "1GB → 400MB on a live trading platform",
+    icon: TrendingDown,
+    gradient: "from-[#CDFF52] to-[#a3e635]",
+    glow: "rgba(205,255,82,0.3)",
   },
   {
-    label: "Core Domain",
-    value: "Realtime",
-    suffix: "UIs",
-    detail: "Low-latency, long-running interfaces",
-    icon: Activity,
-    gradient: "from-[#6b8cbe] to-[#b8cfe8]",
-    glow: "rgba(107,140,190,0.4)",
+    label: "Bundle Size Cut",
+    value: "82%",
+    suffix: "",
+    detail: "Sentry SDK from 400KB to 70KB gzipped",
+    icon: Zap,
+    gradient: "from-[#CDFF52] to-[#a3e635]",
+    glow: "rgba(205,255,82,0.3)",
   },
   {
-    label: "Focus",
-    value: "Debug",
-    suffix: "at scale",
-    detail: "Root-cause analysis in live traffic",
-    icon: ShieldCheck,
-    gradient: "from-[#5a7ba8] to-[#a8c4e0]",
-    glow: "rgba(90,123,168,0.4)",
+    label: "Users Migrated",
+    value: "500K+",
+    suffix: "",
+    detail: "Zero-downtime geo-based platform migration",
+    icon: Users,
+    gradient: "from-[#CDFF52] to-[#a3e635]",
+    glow: "rgba(205,255,82,0.3)",
+  },
+  {
+    label: "Traders Served",
+    value: "100K+",
+    suffix: "",
+    detail: "Position analytics with real-time market data",
+    icon: BarChart3,
+    gradient: "from-[#CDFF52] to-[#a3e635]",
+    glow: "rgba(205,255,82,0.3)",
   },
 ];
 
@@ -115,9 +124,9 @@ export default function StatsSection() {
   return (
     <section ref={sectionRef} className="relative">
       {/* Ambient glow behind entire section */}
-      <div className="pointer-events-none absolute inset-x-0 -top-12 bottom-0 bg-[radial-gradient(ellipse_85%_50%_at_50%_50%,rgba(79,109,153,0.12),transparent)]" />
+      <div className="pointer-events-none absolute inset-x-0 -top-12 bottom-0 bg-[radial-gradient(ellipse_85%_50%_at_50%_50%,rgba(205,255,82,0.08),transparent)]" />
 
-      <div className="relative grid grid-cols-1 gap-0 md:grid-cols-3">
+      <div className="relative grid grid-cols-2 gap-0 md:grid-cols-4">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
 
@@ -125,7 +134,7 @@ export default function StatsSection() {
             <div
               key={stat.label}
               data-stat
-              className="group relative flex flex-col items-center px-4 py-8 text-center sm:px-6 sm:py-10 md:py-14"
+              className="group relative flex flex-col items-center px-2 py-6 text-center sm:px-6 sm:py-10 md:py-14"
               style={{ opacity: 0 }}
             >
               {/* Hover glow */}
@@ -144,7 +153,7 @@ export default function StatsSection() {
               {/* Icon */}
               <span
                 data-stat-icon
-                className={`mb-6 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${stat.gradient} text-white shadow-lg cursor-default`}
+                className={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${stat.gradient} text-black shadow-lg cursor-default sm:mb-6 sm:h-12 sm:w-12 sm:rounded-2xl`}
                 style={{ boxShadow: `0 8px 24px -6px ${stat.glow}`, opacity: 0 }}
               >
                 <Icon size={22} />
@@ -154,13 +163,10 @@ export default function StatsSection() {
               <div className="relative mb-2">
                 <span
                   data-stat-value
-                  className={`bg-gradient-to-r ${stat.gradient} bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-6xl`}
+                  className={`bg-gradient-to-r ${stat.gradient} bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl md:text-5xl`}
                   style={{ opacity: 0 }}
                 >
                   {stat.value}
-                </span>
-                <span className="ml-2 text-base font-medium text-[var(--foreground)]/80 sm:text-lg">
-                  {stat.suffix}
                 </span>
               </div>
 
@@ -170,7 +176,7 @@ export default function StatsSection() {
               </p>
 
               {/* Detail */}
-              <p className="max-w-[200px] text-sm text-[var(--muted)]">
+              <p className="max-w-[140px] text-xs text-[var(--muted)] sm:max-w-[200px] sm:text-sm">
                 {stat.detail}
               </p>
             </div>

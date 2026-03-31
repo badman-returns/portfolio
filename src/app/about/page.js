@@ -13,11 +13,11 @@ export const metadata = {
 
 export default function About() {
   return (
-    <section className="mx-auto max-w-4xl px-6 py-10 space-y-20">
+    <section className="mx-auto max-w-4xl px-4 py-10 space-y-14 sm:px-6 sm:space-y-20">
 
       {/* HEADER */}
       <header className="space-y-6">
-        <h1 className="text-4xl font-bold tracking-tight">Built, Not Taught</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Built, Not Taught</h1>
 
         <p className="text-lg text-[var(--muted)] max-w-2xl">
           My journey into frontend engineering didn’t follow a conventional path.
@@ -27,7 +27,7 @@ export default function About() {
       </header>
 
       {/* INTRO + PHOTO */}
-      <section className="grid grid-cols-1 md:grid-cols-[0.7fr_1.3fr] gap-14 items-start">
+      <section className="grid grid-cols-1 gap-8 items-start md:grid-cols-[0.7fr_1.3fr] md:gap-14">
         {/* PHOTO */}
         <div className="relative">
           <div className="surface p-2 inline-block">
@@ -112,15 +112,17 @@ export default function About() {
         <h2 className="section-title">Today</h2>
 
         <p className="leading-relaxed">
-          I currently work as a Frontend Engineer at Delta Exchange, building
-          reliable, high-performance user experiences for a real-time trading
-          platform.
+          Most recently I was a Frontend Engineer at Delta Exchange, where I
+          worked on a real-time trading platform serving hundreds of thousands
+          of active traders. Currently, I&apos;m building DilSayCare — an
+          AI-assisted mental health platform — from the ground up.
         </p>
 
         <p className="text-[var(--muted)] leading-relaxed">
-          While frontend is my core specialization, I actively explore systems
-          beyond it — backend architecture, infrastructure, async I/O, CPU
-          scheduling, and Go — to better understand how everything fits together.
+          While frontend is my core specialization, I actively build across the
+          stack — backend systems with Node.js and PostgreSQL, mobile apps with
+          React Native and Expo, and infrastructure with Docker and
+          observability tooling.
         </p>
       </section>
 

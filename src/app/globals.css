@@ -4,29 +4,29 @@
 
 /* ---------- THEME TOKENS ---------- */
 :root {
-  --background: #0f1622;
-  --foreground: #e6edf7;
+  --background: #050505;
+  --foreground: #fafafa;
 
-  --surface: #151f2e;
-  --surface-border: #2b3950;
+  --surface: #0d0d0d;
+  --surface-border: rgba(255, 255, 255, 0.08);
 
-  --muted: #a5b2c4;
-  --muted-light: #7f8ea2;
+  --muted: #888888;
+  --muted-light: #555555;
 
-  --accent: #9fb7d8;
+  --accent: #CDFF52;
 }
 
 [data-theme="light"] {
-  --background: #ece7de;
-  --foreground: #202733;
+  --background: #fafafa;
+  --foreground: #0a0a0a;
 
-  --surface: #f7f2e9;
-  --surface-border: #d8cfbf;
+  --surface: #f0f0f0;
+  --surface-border: #e0e0e0;
 
-  --muted: #66707d;
-  --muted-light: #8b93a0;
+  --muted: #666666;
+  --muted-light: #999999;
 
-  --accent: #3c4e6c;
+  --accent: #84cc16;
 }
 
 /* ---------- BASE ---------- */
@@ -41,9 +41,11 @@ html::-webkit-scrollbar {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: ui-sans-serif, system-ui;
-  line-height: 1.75;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.7;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ---------- COMPONENTS ---------- */
@@ -65,7 +67,7 @@ body {
 /* ---------- PROSE ---------- */
 .prose {
   max-width: 72ch;
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 .prose p {
@@ -76,6 +78,13 @@ body {
 .prose h2,
 .prose h3 {
   font-weight: 700;
+  color: var(--accent) !important;
+}
+
+.prose h1 strong,
+.prose h2 strong,
+.prose h3 strong {
+  color: var(--accent) !important;
 }
 
 .prose a {
@@ -96,24 +105,27 @@ body {
 }
 
 .prose code {
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
   padding: 0.15em 0.35em;
   border-radius: 0.25rem;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.9em;
 }
 
 .prose pre {
-  background: #1a2230;
-  color: #f0f4fa;
+  background: #0a0a0a;
+  color: #fafafa;
   padding: 1.25rem 1.5rem;
   border-radius: 0.75rem;
   overflow-x: auto;
-  border: 1px solid #2d3a4e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 [data-theme="light"] .prose pre {
-  background: #1a2230;
-  color: #f0f4fa;
-  border: 1px solid #2d3a4e;
+  background: #1a1a1a;
+  color: #fafafa;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .prose {
@@ -139,6 +151,11 @@ body {
 .prose .meta {
   color: var(--muted);
   font-size: 0.875rem;
+}
+
+/* ---------- MONOSPACE LABELS ---------- */
+.font-mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 /* Hide scrollbar but keep scrolling */

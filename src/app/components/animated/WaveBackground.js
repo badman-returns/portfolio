@@ -26,7 +26,7 @@ export default function WaveBackground({ className = "" }) {
     >
       {/* Ambient glow — covers full hero area */}
       <motion.div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_15%,rgba(158,180,210,0.20),transparent_60%)]"
+        className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_15%,rgba(205,255,82,0.08),transparent_60%)]"
         animate={{ opacity: [0.7, 1, 0.7], scale: [1, 1.02, 1] }}
         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -42,13 +42,13 @@ export default function WaveBackground({ className = "" }) {
       >
         <motion.path
           d={waveOne[0]}
-          fill="rgba(158,180,210,0.14)"
+          fill="rgba(205,255,82,0.06)"
           animate={{ d: waveOne }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.path
           d={waveTwo[0]}
-          fill="rgba(46,58,76,0.22)"
+          fill="rgba(205,255,82,0.03)"
           animate={{ d: waveTwo }}
           transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
         />

@@ -4,7 +4,7 @@ export default function HomeExperience() {
       company: "Delta Exchange",
       role: "Frontend Engineer",
       domain: "Global crypto derivatives platform",
-      gradient: "from-[#4f6d99] to-[#9fb7d8]",
+      gradient: "from-[#CDFF52] to-[#a3e635]",
       summary:
         "Worked on a high-traffic, real-time trading platform used by hundreds of thousands of active traders globally. The frontend acted as a long-running system handling live market data, compliance rules, and performance-sensitive workflows.",
       highlights: [
@@ -19,7 +19,7 @@ export default function HomeExperience() {
       company: "DilSayCare",
       role: "Founder & Engineer",
       domain: "Mental health platform",
-      gradient: "from-[#6b8cbe] to-[#b8cfe8]",
+      gradient: "from-[#CDFF52] to-[#a3e635]",
       summary:
         "Built an AI-assisted mental health platform from scratch, owning frontend architecture, backend systems, infrastructure, and product flows.",
       highlights: [
@@ -34,7 +34,7 @@ export default function HomeExperience() {
       company: "Grapevine",
       role: "Frontend Engineer",
       domain: "Salary insights platform",
-      gradient: "from-[#5a7ba8] to-[#a8c4e0]",
+      gradient: "from-[#CDFF52] to-[#a3e635]",
       summary:
         "Worked on a consumer-facing salary insights platform where SEO, performance, and rendering correctness directly impacted growth.",
       highlights: [
@@ -48,7 +48,7 @@ export default function HomeExperience() {
       company: "Flipkart",
       role: "Frontend Engineer",
       domain: "Large-scale e-commerce platform",
-      gradient: "from-[#4f6d99] to-[#9fb7d8]",
+      gradient: "from-[#CDFF52] to-[#a3e635]",
       summary:
         "Early experience working on frontend systems at massive scale, with emphasis on SEO, SSR, and analytics accuracy.",
       highlights: [
@@ -75,7 +75,7 @@ export default function HomeExperience() {
             key={exp.company}
             className="group relative grid grid-cols-1 gap-6 rounded-2xl border border-[var(--surface-border)] bg-[color:color-mix(in_srgb,var(--surface)_60%,transparent)] p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--accent)]/30 md:grid-cols-[220px_1fr] md:p-8"
           >
-            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_top_right,rgba(79,109,153,0.08),transparent_60%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_top_right,rgba(205,255,82,0.06),transparent_60%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
             {/* Left column */}
             <div className="relative space-y-2">
