@@ -2,6 +2,8 @@ import Link from "next/link";
 import { client } from "@/sanity/client";
 import { allPostsQuery } from "@/sanity/queries";
 
+export const revalidate = 60;
+
 export const metadata = {
   title: "Writing",
   description:

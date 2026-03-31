@@ -5,6 +5,8 @@ import { postBySlugQuery } from "@/sanity/queries";
 import { portableTextComponents } from "@/sanity/portableText";
 import { urlFor } from "@/sanity/image";
 
+export const revalidate = 60;
+
 export default async function PostPage({ params }) {
   const { slug } = await params;
 
