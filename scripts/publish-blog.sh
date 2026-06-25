@@ -35,12 +35,11 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # ── Slugs: remaining args, default to the dashboards post ──────────────
-# "all" (or no args) → let publish-to-sanity.mjs publish everything.
+# No args (or "all") → publish everything in content/blogs.
+# Pass one or more slugs to publish only those.
 SLUGS=("$@")
-if [ "${SLUGS[*]:-}" = "all" ]; then
+if [ "${SLUGS[*]:-}" = "all" ] || [ ${#SLUGS[@]} -eq 0 ]; then
   SLUGS=()
-elif [ ${#SLUGS[@]} -eq 0 ]; then
-  SLUGS=("dashboards-on-a-spreadsheet")
 fi
 
 echo "Publishing to Sanity..."

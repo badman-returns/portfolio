@@ -1,0 +1,57 @@
+<svg viewBox="0 0 880 470" xmlns="http://www.w3.org/2000/svg" role="img" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <title>Before: the screen could show data the database didn't have yet</title>
+  <desc>The LLM produces changes in the backend. Two paths feed the grid: a live event stream that renders changes immediately, and a paginated read that returns the saved data. Because the live change is shown before it is saved, the next page read returns the old saved data and the change vanishes.</desc>
+
+  <rect x="1" y="1" width="878" height="468" rx="16" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+  <text x="40" y="42" font-size="11" font-weight="700" letter-spacing="1.1" fill="#e7b84a">BEFORE<tspan fill="#888888" font-weight="500" letter-spacing="0">  ·  the screen could show data the database didn't have yet</tspan></text>
+
+  <!-- LEFT STACK: LLM -> Backend -> Database -->
+  <rect x="52" y="78" width="184" height="50" rx="10" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  <text x="144" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#fafafa">LLM</text>
+  <text x="144" y="116" text-anchor="middle" font-size="10.5" fill="#888888">generates changes</text>
+
+  <rect x="52" y="176" width="184" height="50" rx="10" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  <text x="144" y="198" text-anchor="middle" font-size="13" font-weight="700" fill="#fafafa">Backend</text>
+  <text x="144" y="214" text-anchor="middle" font-size="10.5" fill="#888888">streams + persists</text>
+
+  <rect x="52" y="288" width="184" height="60" rx="10" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  <text x="144" y="312" text-anchor="middle" font-size="13" font-weight="700" fill="#fafafa">Database</text>
+  <text x="144" y="328" text-anchor="middle" font-size="10.5" fill="#888888">source of truth (saved)</text>
+
+  <!-- vertical arrows -->
+  <g stroke="#3a3a3a" stroke-width="1.6" fill="none"><path d="M 144 128 l 0 44"/></g>
+  <path d="M 144 172 l -4 -7 l 8 0 z" fill="#3a3a3a"/>
+  <g stroke="#e7b84a" stroke-opacity="0.55" stroke-width="1.6" fill="none" stroke-dasharray="5 4"><path d="M 144 226 l 0 58"/></g>
+  <path d="M 144 284 l -4 -7 l 8 0 z" fill="#e7b84a" fill-opacity="0.7"/>
+  <text x="156" y="260" font-size="10.5" fill="#cbb06a">save — happens later</text>
+
+  <!-- RIGHT: Frontend grid -->
+  <rect x="612" y="150" width="216" height="150" rx="12" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  <text x="628" y="176" font-size="12.5" font-weight="700" fill="#fafafa">Frontend grid</text>
+  <g transform="translate(628,188)">
+    <rect x="0" y="0" width="184" height="66" rx="6" fill="#0d0d0d" stroke="rgba(255,255,255,0.10)"/>
+    <line x1="0" y1="22" x2="184" y2="22" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="0" y1="44" x2="184" y2="44" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="61" y1="0" x2="61" y2="66" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="122" y1="0" x2="122" y2="66" stroke="rgba(255,255,255,0.07)"/>
+  </g>
+  <text x="628" y="290" font-size="10.5" fill="#888888">page 2 of 40</text>
+
+  <!-- PATH A: live event stream (Backend -> Frontend), rendered now -->
+  <path d="M 236 196 C 400 196 470 178 612 178" fill="none" stroke="#CDFF52" stroke-width="1.8"/>
+  <path d="M 612 178 l -9 -4 l 2 9 z" fill="#CDFF52"/>
+  <rect x="316" y="150" width="214" height="22" rx="11" fill="#0d0d0d" stroke="rgba(205,255,82,0.35)"/>
+  <text x="423" y="165" text-anchor="middle" font-size="10.5" font-weight="600" fill="#CDFF52">① live event — rendered now</text>
+
+  <!-- PATH B: page read from DB (Database -> Frontend), returns saved/old -->
+  <path d="M 236 322 C 430 360 470 290 612 270" fill="none" stroke="#7a8590" stroke-width="1.6"/>
+  <path d="M 612 270 l -9 -1 l 4 8 z" fill="#7a8590"/>
+  <rect x="300" y="356" width="252" height="22" rx="11" fill="#0d0d0d" stroke="rgba(255,255,255,0.14)"/>
+  <text x="426" y="371" text-anchor="middle" font-size="10.5" font-weight="600" fill="#aab2bd">② page read → returns saved (old) rows</text>
+
+  <!-- WARNING callout -->
+  <rect x="40" y="402" width="800" height="44" rx="10" fill="rgba(231,184,74,0.07)" stroke="rgba(231,184,74,0.35)"/>
+  <text x="62" y="423" font-size="14" fill="#e7b84a">&#9888;</text>
+  <text x="84" y="421" font-size="12.5" font-weight="600" fill="#f0d28a">The live change is shown before it's saved.</text>
+  <text x="84" y="437" font-size="11.5" fill="#cbb06a">So the next page read pulls the old saved rows and overwrites it — the change flickers, then vanishes.</text>
+</svg>

@@ -1,0 +1,154 @@
+---
+title: "The Data That Lied: A Real-Time Bug Hiding Between Two Systems"
+date: "2026-06-26"
+---
+
+Right before a release, our QA flagged something strange. Data in one of our tools would change — and then, a moment later, quietly change back. No error. No crash. The numbers just wouldn't sit still.
+
+I didn't find this bug. QA did. But tracing *why* it happened taught me more about systems than the fix itself did — because the bug wasn't in the frontend, and it wasn't in the backend. It was hiding in the space between them.
+
+## The setup
+
+The tool is our List Builder — a spreadsheet at the center of the product. It shows a big list of data: thousands of rows and columns, split across pages because no client wants to hold tens of thousands of rows at once. And that data isn't typed in by a person. It's generated live by an LLM running in the background. You ask it to enrich a column or filter the list, and it streams a flood of changes into the grid as it works.
+
+There were two completely different ways data reached the screen, and that's the whole story.
+
+![Before: the LLM produces changes; a live event stream renders them immediately while the saved copy lags, so a page read returns old data and the change vanishes](/blog/the-data-that-lied/01-two-data-paths.svg)
+
+**Path one — reads.** Whenever you actually look at the data — open a page, scroll to the next one — the frontend fetches that page fresh from the backend with an API call. That response is the official, saved copy. The source of truth.
+
+**Path two — live updates.** While the LLM was working, we didn't want you waiting. So the frontend also subscribed to a live event stream, and whatever the model changed, we painted straight onto the grid the instant the event arrived.
+
+Two paths. One screen. And they did not agree.
+
+## The bug: two sources, two answers
+
+Here's the order things actually happened in. The LLM would produce a change, and the backend would push it down the event stream — *before it ever wrote it to the database.* For a window of time, the screen was showing something that didn't exist in the saved copy yet.
+
+On its own, that's invisible. The trouble started the moment you moved.
+
+The grid is paginated, and paging is a *read* — Path one. So the second you flipped to another page and back, the frontend did what it always does: fetch that page fresh from the backend.
+
+```typescript
+// Paging always re-reads the saved page from the backend — the source of truth.
+const snapshot = await config.api.loadGrid(gridId, {
+  page: viewportPage,
+  pageSize,
+  sheetName: activeSheet || undefined,
+});
+```
+
+But the backend still had the old version, because the new change had only ever lived on the screen — streamed, never saved. So the read returned the stale rows and overwrote the live change. Your update flickered in, then vanished, then reappeared seconds later once the save finally caught up. To QA, it looked like the data was lying.
+
+## It wasn't a frontend bug
+
+My first instinct was to treat this as a rendering problem — something in how the grid applied updates. It wasn't. No amount of frontend cleverness fixes it, because the frontend was doing exactly what it was told: render the stream, and on a read, trust the backend.
+
+The actual defect was an **ordering** problem that spanned two systems. We were showing data as real before it was real. The live path and the read path were two readers of the same data, and one of them was reading a version the other hadn't written yet. You can only see that if you stop staring at one layer and trace the whole path — from the model, into the backend, out to the screen.
+
+So the fix had to live in three places at once: how the backend saves, how the backend sends, and how the frontend listens.
+
+![After: the backend saves first, then emits batched checkpoint signals; the frontend collapses a burst into one reconcile that re-reads the saved page, so the screen always matches the database](/blog/the-data-that-lied/02-the-fix.svg)
+
+## Fix part one: save before you send
+
+The first change was a contract change, and it's obvious in hindsight: **never tell the screen something is true before it's written down.** The backend now persists the change first, *then* emits the event. The saved copy and the streamed copy can no longer disagree, because the stream can't run ahead of the database.
+
+But there's a catch. The LLM doesn't make one tidy change at a time — it fires a hundred in a few seconds. Saving and emitting each one individually would hammer the database and flood the client. So the backend batches: it collects the changes, writes them on an interval, and sends them down in chunks instead of one event per mutation.
+
+## Fix part two: batch the flood on the frontend
+
+The frontend had the mirror version of the same problem. Reacting to every single streamed event meant re-rendering — and, worse, re-fetching — far more often than any human eye could use. The screen thrashed.
+
+The fix is a trick the browser already uses. No matter how much is changing on screen, your display doesn't redraw for every individual change — it folds all that work into one smooth update on a steady beat. That's what `requestAnimationFrame` does. I built the same behavior on our own interval: instead of acting on each event, a burst of events *debounces* into a single reconciliation.
+
+```typescript
+onCheckpoint: () => {
+  if (checkpointTimerRef.current) clearTimeout(checkpointTimerRef.current);
+  // A burst of agent events collapses into ONE refresh, not one per event.
+  checkpointTimerRef.current = setTimeout(() => {
+    const gridState = store.getState().grid;
+    const visibleRange = gridState.visiblePageRange ?? {
+      first: gridState.viewportPage,
+      last: gridState.viewportPage,
+    };
+    // Drop pages the user can't see, then re-fetch only what's visible.
+    dispatch(invalidateOtherPages(visibleRange));
+    for (let p = visibleRange.first; p <= visibleRange.last; p++) {
+      void dispatch(loadGrid({ gridId, api: config.api, page: p, mode: "append" }));
+    }
+  }, 2000);
+},
+```
+
+The key shift: the stream stopped being a *source of truth* and became a *signal that something changed*. The frontend no longer reconstructs state from individual events — it treats the burst as "go re-read the saved pages," and pulls the committed truth from the backend. A hundred events in a window cost one refresh.
+
+## Fix part three: reconcile without losing your place
+
+One subtlety made this tricky. The grid keeps a page-keyed cache — page 1 is rows 1–100, page 2 is 101–200 — and stitches the cached pages together to render:
+
+```typescript
+function buildDisplayRows(
+  pageCache: Record<number, RowData[]>,
+  pagination: Pagination,
+): RowData[] {
+  const result: RowData[] = [];
+  for (let p = 1; p <= pagination.totalPages; p++) {
+    if (pageCache[p]) result.push(...pageCache[p]);
+  }
+  return result;
+}
+```
+
+While updates are streaming, I want every page you can see to stay fresh — so I invalidate the pages *outside* the visible range and re-fetch what's in view:
+
+```typescript
+invalidateOtherPages(state, action) {
+  const { first, last } = action.payload;
+  const newCache: Record<number, RowData[]> = {};
+  for (let p = first; p <= last; p++) {
+    if (state.pageCache[p]) newCache[p] = state.pageCache[p];
+  }
+  state.pageCache = newCache; // keep only what's visible; everything else re-reads fresh
+  state.rows = buildDisplayRows(state.pageCache, state.pagination);
+}
+```
+
+And when the turn finishes, one final reconciliation reloads the viewport page first (fast), then backfills the rest of the visible range against the saved snapshot — merging each page into the cache by key, never replacing the whole thing:
+
+```typescript
+dispatch(invalidateOtherPages(visibleRange));
+const snapshot = await config.api.loadGrid(gridId, { page: viewportPage, pageSize, sheetName });
+dispatch(gridActions.refreshSnapshot({
+  page: viewportPage,
+  rows: snapshot.rows,
+  columns: snapshot.columns,
+  seq: snapshot.seq,
+  pagination: snapshot.pagination,
+}));
+// then backfill the other visible pages in the background…
+```
+
+Once it settles, the visible pages are cached again — so scrolling up, jumping around, and coming back doesn't re-fetch anything. You already have the latest, and it matches the database.
+
+## The result
+
+The flickering stopped. The data stopped lying. As the LLM works, you still see it move — but what you see is always something the backend has actually saved, and moving between pages never resurrects an old value. A flood of a hundred changes now costs a single refresh instead of a hundred re-renders.
+
+None of this produced an error before. It produced a grid that was confidently showing the wrong number, which in a product where people make decisions off those numbers is worse than a crash.
+
+## Why it was hard to find
+
+It only broke under live load. The two paths agreed perfectly until the moment the LLM was mid-stream and you happened to change pages inside the same few seconds. In normal development — small datasets, manual edits, frequent reloads — you'd never trip it. It took QA exercising the real, messy, concurrent path to surface it, and it took tracing data across the whole stack to explain it.
+
+## The real lesson
+
+The fix is satisfying, but it's not what stuck with me. What stuck was *how* you find a bug like this.
+
+I only saw it because I stopped thinking like a frontend engineer. The defect wasn't inside the frontend or inside the backend — it was in the handshake between them: the order in which two systems agreed on what was true. If I'd kept debugging my own layer, I'd never have found it, because my layer wasn't wrong.
+
+That's the shift that's changed how I work. Don't debug your layer — understand the architecture. The hardest problems don't live inside the boxes. They live in the lines between them.
+
+---
+
+*Built with clarity over cleverness.*

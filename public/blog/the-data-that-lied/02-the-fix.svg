@@ -1,0 +1,69 @@
+<svg viewBox="0 0 880 470" xmlns="http://www.w3.org/2000/svg" role="img" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <title>After: save first, batch the flood, and re-derive from the saved truth</title>
+  <desc>The backend saves changes first, then emits batched checkpoint signals instead of one per change. The frontend collapses a burst of signals into a single reconcile, re-reading the saved page from the database, so the screen always matches the saved truth.</desc>
+
+  <rect x="1" y="1" width="878" height="468" rx="16" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+  <text x="40" y="42" font-size="11" font-weight="700" letter-spacing="1.1" fill="#CDFF52">AFTER<tspan fill="#888888" font-weight="500" letter-spacing="0">  ·  save first, batch the flood, re-derive from the saved truth</tspan></text>
+
+  <!-- LEFT STACK -->
+  <rect x="52" y="78" width="184" height="50" rx="10" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  <text x="144" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#fafafa">LLM</text>
+  <text x="144" y="116" text-anchor="middle" font-size="10.5" fill="#888888">fires ~100 changes / 5s</text>
+
+  <rect x="52" y="176" width="184" height="50" rx="10" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  <text x="144" y="198" text-anchor="middle" font-size="13" font-weight="700" fill="#fafafa">Backend</text>
+  <text x="144" y="214" text-anchor="middle" font-size="10.5" fill="#888888">persists, then signals</text>
+
+  <rect x="52" y="288" width="184" height="60" rx="10" fill="rgba(205,255,82,0.06)" stroke="rgba(205,255,82,0.45)"/>
+  <text x="144" y="312" text-anchor="middle" font-size="13" font-weight="700" fill="#fafafa">Database</text>
+  <text x="144" y="328" text-anchor="middle" font-size="10.5" fill="#9bbf4e">source of truth (saved)</text>
+
+  <!-- arrows: LLM->Backend, Backend->DB (save first, lime) -->
+  <g stroke="#3a3a3a" stroke-width="1.6" fill="none"><path d="M 144 128 l 0 44"/></g>
+  <path d="M 144 172 l -4 -7 l 8 0 z" fill="#3a3a3a"/>
+  <g stroke="#CDFF52" stroke-width="1.8" fill="none"><path d="M 144 226 l 0 58"/></g>
+  <path d="M 144 284 l -4 -7 l 8 0 z" fill="#CDFF52"/>
+  <text x="156" y="252" font-size="10.5" font-weight="600" fill="#CDFF52">① save first</text>
+  <text x="156" y="267" font-size="10" fill="#9bbf4e">(batched writes)</text>
+
+  <!-- RIGHT: Frontend grid -->
+  <rect x="612" y="150" width="216" height="150" rx="12" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  <text x="628" y="176" font-size="12.5" font-weight="700" fill="#fafafa">Frontend grid</text>
+  <g transform="translate(628,188)">
+    <rect x="0" y="0" width="184" height="66" rx="6" fill="#0d0d0d" stroke="rgba(255,255,255,0.10)"/>
+    <line x1="0" y1="22" x2="184" y2="22" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="0" y1="44" x2="184" y2="44" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="61" y1="0" x2="61" y2="66" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="122" y1="0" x2="122" y2="66" stroke="rgba(255,255,255,0.07)"/>
+  </g>
+  <text x="628" y="290" font-size="10.5" fill="#9bbf4e">always matches the saved data</text>
+
+  <!-- PATH: Backend -> (debounce funnel) -> Frontend : checkpoint signals -->
+  <path d="M 236 192 L 372 180" fill="none" stroke="#7a8590" stroke-width="1.6"/>
+  <!-- many ticks feeding the funnel -->
+  <g stroke="#7a8590" stroke-width="1.4">
+    <path d="M 250 168 l 0 10"/><path d="M 262 166 l 0 12"/><path d="M 274 168 l 0 10"/>
+    <path d="M 286 166 l 0 12"/><path d="M 298 168 l 0 10"/>
+  </g>
+  <!-- funnel / debounce node -->
+  <rect x="372" y="160" width="150" height="40" rx="10" fill="rgba(205,255,82,0.06)" stroke="rgba(205,255,82,0.45)"/>
+  <text x="447" y="176" text-anchor="middle" font-size="10.5" font-weight="700" fill="#CDFF52">batch · debounce</text>
+  <text x="447" y="190" text-anchor="middle" font-size="9.5" fill="#9bbf4e">~100 signals → 1 refresh</text>
+  <text x="447" y="150" text-anchor="middle" font-size="10" fill="#888888">② checkpoint signals (chunked)</text>
+
+  <!-- funnel -> Frontend -->
+  <path d="M 522 180 C 560 180 580 176 612 176" fill="none" stroke="#CDFF52" stroke-width="1.8"/>
+  <path d="M 612 176 l -9 -4 l 2 9 z" fill="#CDFF52"/>
+
+  <!-- PATH: Frontend reconcile-reads the saved page from DB -->
+  <path d="M 612 268 C 460 300 420 330 236 326" fill="none" stroke="#CDFF52" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <path d="M 236 326 l 9 -4 l -2 9 z" fill="#CDFF52"/>
+  <rect x="318" y="350" width="276" height="22" rx="11" fill="#0d0d0d" stroke="rgba(205,255,82,0.35)"/>
+  <text x="456" y="365" text-anchor="middle" font-size="10.5" font-weight="600" fill="#CDFF52">③ reconcile — re-read the saved page</text>
+
+  <!-- RESULT callout -->
+  <rect x="40" y="402" width="800" height="44" rx="10" fill="rgba(205,255,82,0.06)" stroke="rgba(205,255,82,0.35)"/>
+  <text x="62" y="429" font-size="14" fill="#CDFF52">&#10003;</text>
+  <text x="84" y="421" font-size="12.5" font-weight="600" fill="#dff3ad">Every refresh is re-derived from the saved truth.</text>
+  <text x="84" y="437" font-size="11.5" fill="#9bbf4e">The screen and the database never disagree — and a flood of changes costs one refresh, not a hundred.</text>
+</svg>

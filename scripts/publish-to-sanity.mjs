@@ -54,6 +54,7 @@ const CATEGORY_MAP = {
   "doctor-scheduling": ["Backend", "PostgreSQL", "System Design"],
   "dashboards-on-a-spreadsheet": ["Frontend", "System Design", "React"],
   "syncing-a-live-grid-an-llm-is-editing": ["Frontend", "State Management", "Real-Time"],
+  "the-data-that-lied": ["Frontend", "Real-Time", "System Design"],
 };
 
 const EXCERPT_MAP = {
@@ -75,6 +76,8 @@ const EXCERPT_MAP = {
     "Turning a talk-to-it data grid into a one-glance surface — and why the dashboard, not the widget, is the fundamental unit.",
   "syncing-a-live-grid-an-llm-is-editing":
     "A live data grid an LLM edits while a user does too — and the silent concurrency bugs I fixed by making the client defer to the server.",
+  "the-data-that-lied":
+    "A live grid kept showing changes that weren't saved yet, so they vanished on page change. The fix lived between two systems.",
 };
 
 // ── Markdown → Portable Text ──
