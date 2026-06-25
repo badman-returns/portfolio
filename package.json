@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "publish:blog": "./scripts/publish-blog.sh"
   },
   "dependencies": {
     "@next/mdx": "^16.1.1",
