@@ -53,6 +53,7 @@ const CATEGORY_MAP = {
   "otp-auth-rate-limiting": ["Backend", "Security", "Node.js"],
   "doctor-scheduling": ["Backend", "PostgreSQL", "System Design"],
   "dashboards-on-a-spreadsheet": ["Frontend", "System Design", "React"],
+  "syncing-a-live-grid-an-llm-is-editing": ["Frontend", "State Management", "Real-Time"],
 };
 
 const EXCERPT_MAP = {
@@ -72,6 +73,8 @@ const EXCERPT_MAP = {
     "RRule-based recurring availability, lazy slot generation with IST-UTC conversion, FOR UPDATE SKIP LOCKED for race-safe booking, and payment locking with cron-based cleanup.",
   "dashboards-on-a-spreadsheet":
     "Turning a talk-to-it data grid into a one-glance surface — and why the dashboard, not the widget, is the fundamental unit.",
+  "syncing-a-live-grid-an-llm-is-editing":
+    "A live data grid an LLM edits while a user does too — and the silent concurrency bugs I fixed by making the client defer to the server.",
 };
 
 // ── Markdown → Portable Text ──

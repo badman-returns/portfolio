@@ -1,0 +1,183 @@
+---
+title: "Why My Data Grid Kept Switching to the Wrong Sheet: Syncing a Live Grid an LLM Is Editing"
+date: "2026-06-24"
+---
+
+A user typed "remove the duplicate companies" into the chat next to our data grid. The agent did its job — rows disappeared, the count dropped, everything looked right. Then, half a second later, the grid quietly repopulated with a completely different sheet's data. Same columns, wrong rows. No error. No toast. Nothing in the console.
+
+This is the story of building a data grid that stays correct while a language model edits it underneath you — and the chain of subtle concurrency bugs I had to walk through to get there. The hardest ones weren't crashes. They were the cases where everything *looked* like it worked.
+
+## The setup
+
+The List Builder is the spreadsheet at the center of our product. You load a dataset — companies, deals, contacts — into a grid, and then you talk to it. "Add a column for headquarters." "Enrich each row with the latest funding round." "Sort by revenue and highlight anything below target." A chat panel sits beside the grid, and an agent translates your message into mutations: add column, set range, delete rows, highlight, re-sort.
+
+So at any moment, two writers are editing the same grid:
+
+1. **The user**, clicking into cells and typing, dragging fills, deleting rows — optimistic local edits that need to persist.
+2. **The agent**, streaming a sequence of mutations over an SSE connection while it reasons through a request.
+
+Both write to the same backend document. Both expect the on-screen grid to reflect reality. And the grid itself is paginated — a hundred rows per page out of datasets that run to tens of thousands — so the client never holds the whole truth at once.
+
+That combination — concurrent writers, a streaming mutation source, and a partial client view — is where state, rendering, and correctness collide. It's also where I spent the better part of two months.
+
+## The concurrency model
+
+The backend is the source of truth, and it uses optimistic concurrency. Every grid carries a monotonically increasing version number — a `seq`. Every mutation the client sends includes the `seq` it *thinks* the grid is at:
+
+```typescript
+handleMutationResult(
+  api.saveCell(gridId, rowIndex, column, value, { expectedSeq }),
+);
+```
+
+If `expectedSeq` matches the server's current `seq`, the write applies and the server returns the new `seq`. If they disagree — because the agent (or another tab) moved the grid forward in the meantime — the server rejects the write with a `409` and a `SEQ_MISMATCH`, and hands back a snapshot of the current state so the client can recover.
+
+This is a clean model. The bugs all lived in how the client *reacted* to that 409.
+
+## Symptom 1: the grid swaps to the wrong sheet
+
+Back to the disappearing rows. A grid can have multiple sheets, like tabs in a spreadsheet. When a user edit collided with an in-flight agent mutation, the client got its `409` with a recovery snapshot — and dutifully rendered that snapshot.
+
+The problem: the snapshot the backend returned didn't always describe the sheet the user was *looking at*. Sometimes it omitted the active sheet entirely. So the recovery path would take an authoritative-looking blob of rows and columns and slam it into the grid — and the user, who was on Sheet 2, would suddenly be staring at Sheet 1's data without ever having switched tabs.
+
+The naive recovery — "got a snapshot, render the snapshot" — was the bug. The snapshot was correct *data*, just not the data this client should be showing.
+
+The fix was to stop trusting the snapshot's contents and only trust its version number:
+
+```typescript
+// Never apply the raw 409 snapshot directly: it may belong to a different
+// active sheet (and may omit `activeSheet` altogether), which would silently
+// replace the displayed data with another sheet's content and look like an
+// unexpected sheet switch. Instead, sync the seq so the next operation uses
+// the correct expectedSeq, then reload *this client's* sheet from the server.
+storeApi.dispatch(gridActions.setSeq(mutation.snapshot.seq));
+
+void dispatch(
+  loadGrid({
+    gridId,
+    api,
+    page: gridState.viewportPage,
+    pageSize: gridState.pagination?.pageSize ?? GRID_SNAPSHOT_PAGE_SIZE,
+    sheetName: clientSheet || undefined,
+    mode: "refresh",
+  }),
+);
+```
+
+Take the `seq` from the snapshot — that's the one piece of it that's unconditionally true — then re-fetch the page of the sheet the user actually has open. The grid catches up to reality without teleporting to another sheet.
+
+## Symptom 2: the grid stops updating after chat
+
+The next bug was the mirror image of the first. After the sheet-swap fix, the recovery path was conservative — maybe too conservative. There was a guard that compared sequence numbers before accepting an update, intended to drop stale responses arriving out of order. But it was firing on legitimate updates: a user would finish a chat turn, the agent would mutate the grid, the new snapshot would arrive — and the guard would decide it was stale and throw it away. The grid just sat there showing pre-chat data until you reloaded the page.
+
+This is the classic tension with a stale-write guard. Too loose and you render out-of-order garbage; too tight and you reject the very updates you're waiting for. The guard was keyed on a sequence assumption that no longer held once mutations could originate from the agent mid-stream. I removed the stale `seq` guard from the post-chat refresh path entirely and leaned on the reconciliation step (below) to be the single authority on what the grid shows after a turn. Correctness moved from "guess whether this update is fresh" to "after the turn ends, ask the server what's true."
+
+## Symptom 3: real-time streaming was the wrong abstraction
+
+For a while the grid applied each agent mutation live, as it streamed — a `STATE_UPDATE` event per operation, mutating the local grid in real time so you'd watch rows change as the model worked. It demoed beautifully. In practice it was a correctness liability.
+
+Each streamed mutation was a chance for the local grid and the backend to drift. The model might emit ten operations, revise one mid-stream, or have an operation reordered relative to what actually committed. Applying them one-by-one meant the client was reconstructing the backend's state from a play-by-play feed — and any dropped or reordered frame left the grid subtly wrong, with no error to tell you so.
+
+I replaced the play-by-play with checkpoints. Instead of applying every `STATE_UPDATE`, the client now treats the stream as a *hint that something changed* and reconciles against the real snapshot:
+
+```typescript
+onCheckpoint: () => {
+  if (checkpointTimerRef.current) clearTimeout(checkpointTimerRef.current);
+  // Debounce: a burst of agent operations collapses into one refresh.
+  checkpointTimerRef.current = setTimeout(() => {
+    const gridState = store.getState().grid;
+    const visibleRange = gridState.visiblePageRange ?? {
+      first: gridState.viewportPage,
+      last: gridState.viewportPage,
+    };
+    // Drop pages the user can't see, then re-fetch only what's visible.
+    dispatch(invalidateOtherPages(visibleRange));
+    for (let p = visibleRange.first; p <= visibleRange.last; p++) {
+      void dispatch(loadGrid({ gridId, api: config.api, page: p, mode: "append" }));
+    }
+  }, 2000);
+},
+```
+
+A burst of `grid_checkpoint` events during a single agent turn collapses, via a 2-second debounce, into one refresh of the pages the user can actually see. When the turn ends, a final reconciliation re-loads the viewport page and then the rest of the visible range against the authoritative snapshot. The grid is never reconstructed from the stream — it's always re-derived from the server's committed truth. You trade a little live animation for a grid that is never quietly wrong.
+
+## Symptom 4: pagination data loss on refresh
+
+The last one fell out of pagination. The grid keeps a page-keyed cache — page 1 is rows 1–100, page 2 is 101–200, and so on — and builds the visible rows by stitching cached pages together in order:
+
+```typescript
+function buildDisplayRows(
+  pageCache: Record<number, RowData[]>,
+  pagination: Pagination,
+): RowData[] {
+  const result: RowData[] = [];
+  for (let p = 1; p <= pagination.totalPages; p++) {
+    if (pageCache[p]) result.push(...pageCache[p]);
+  }
+  return result;
+}
+```
+
+The early refresh logic replaced the *entire* cache with the single page it had just re-fetched. So a reconciliation triggered while you were scrolled to page 4 would refresh page 4 — and wipe pages 1 through 3, which the user had already loaded. Scroll up and the rows were gone.
+
+The fix was to make refresh *merge* into the cache by page key instead of replacing it, and to invalidate only the pages outside the visible range so stale rows don't linger while loaded-and-still-visible pages survive:
+
+```typescript
+refreshSnapshot(state, action) {
+  const { page, rows, seq, pagination } = action.payload;
+  state.seq = seq;
+  state.pagination = pagination;
+  state.pageCache = { ...state.pageCache, [page]: rows }; // merge, don't replace
+  state.rows = buildDisplayRows(state.pageCache, state.pagination);
+}
+```
+
+Refresh stopped being a destructive operation. It updates the page it fetched and leaves the rest of the user's loaded view intact.
+
+## The result
+
+Put together, the grid now follows a single principle: **the client never reconstructs backend state — it re-derives it.**
+
+- User edits apply optimistically and persist with an `expectedSeq`; a conflict resolves by syncing the `seq` and reloading the user's own sheet, never by rendering whatever snapshot happened to come back.
+- Agent mutations stream as *signals*, not as authoritative writes; a debounced checkpoint and an end-of-turn reconciliation pull the real, committed state.
+- Pagination refreshes merge by page key, so reconciliation never destroys rows the user has already loaded.
+
+The wrong-sheet swaps stopped. The "grid frozen until reload" reports stopped. The silent drift between what the model did and what the grid showed stopped. None of these produced an error before — they produced a grid that was confidently displaying the wrong thing, which is worse.
+
+## Why this was hard to find
+
+**Every bug looked like success.** No exceptions, no failed network calls, no red in the console. The grid rendered cleanly — it just rendered the wrong rows, or the right rows one turn too late. The only way to catch them was to distrust a UI that appeared to be working.
+
+**The failure window was a race.** The wrong-sheet swap only happened when a user edit and an agent mutation collided inside the same few hundred milliseconds. Reproducing it meant typing into a cell at exactly the moment the agent committed — not something you stumble into while developing, and not something a unit test catches unless you've already understood the race.
+
+**Each fix exposed the next.** Tightening recovery to stop the sheet swap is what surfaced the over-eager stale guard. Removing the guard is what made the cost of real-time `STATE_UPDATE` obvious. Solving streaming drift is what put refresh on the hot path often enough to reveal the pagination data loss. The bugs were layered, and you could only see each one after the one in front of it was gone.
+
+## Lessons
+
+### A recovery snapshot is data, not a command
+
+When a server hands you state to recover from a conflict, ask what part of it you can actually trust. Here, the `seq` was unconditionally true and the row payload was conditionally true — it depended on which sheet it described. Rendering the whole snapshot treated a piece of context-dependent data as if it were authoritative for the user's current view. Take the invariant (the version), re-fetch the rest in the context you control.
+
+### Stale-write guards are a tuning problem, not a fix
+
+A guard that drops out-of-order updates has two failure modes — admit garbage or reject truth — and the boundary between them moves the moment a new writer (the agent) enters the system. If you can instead define a single point where you reconcile against authoritative state, do that, and let the guard go. "Ask the server what's true after the turn" is a more durable invariant than "guess whether this frame is fresh."
+
+### Don't reconstruct state from a stream when you can re-derive it
+
+Applying a model's mutations live, one event at a time, makes the client a second implementation of the backend's reducer — and any divergence is silent. Treat the stream as a notification that *something changed* and pull the committed truth. You lose a little real-time flourish; you gain a grid that is never quietly out of sync. Debounce the notifications so a burst of operations costs one refresh, not twenty.
+
+### Make refresh non-destructive
+
+A cache keyed by page should be updated by page. Replacing the whole cache on every refresh turns a routine reconciliation into data loss for anything the user already scrolled through. Merge by key, invalidate only what's out of view, and a refresh becomes safe to run as often as you need it.
+
+## The broader pattern
+
+The thread running through all four bugs is the same: in a UI with more than one writer and only a partial view of the truth, **optimistic local state is a cache, not the source of truth — and a cache's only job is to converge on the real thing.** Every place I tried to make the client clever about reconstructing backend state from fragments — a returned snapshot, a guard's freshness heuristic, a stream of individual mutations — is exactly where it drifted. Every place I made the client humble — sync the version, re-fetch the page, reconcile at turn boundaries — is where it became correct.
+
+That's not a grid-specific lesson. Any frontend that takes optimistic edits and also receives updates from elsewhere — collaborative documents, dashboards, live tables, anything an agent can touch while a human is in it — faces the same choice. You can try to keep a perfect local replica of a system you don't own, or you can treat your local state as a fast, disposable view that always defers to the server when it matters.
+
+A grid that updates a half-second slower but is never wrong beats a grid that updates instantly and occasionally shows you someone else's sheet. In a product where people make decisions off the numbers on screen, "never wrong" isn't a nice-to-have. It's the whole job.
+
+---
+
+*Built with clarity over cleverness.*
