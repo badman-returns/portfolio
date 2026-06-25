@@ -57,5 +57,21 @@ export const blockContentType = defineType({
         withFilename: true,
       },
     }),
+
+    // DIAGRAM — static asset from /public (e.g. inline SVG)
+    defineArrayMember({
+      type: 'object',
+      name: 'diagram',
+      title: 'Diagram',
+      icon: ImageIcon,
+      fields: [
+        {name: 'src', type: 'string', title: 'Source path (e.g. /blog/...)'},
+        {name: 'alt', type: 'string', title: 'Alt text'},
+        {name: 'caption', type: 'string', title: 'Caption'},
+      ],
+      preview: {
+        select: {title: 'alt', subtitle: 'src'},
+      },
+    }),
   ],
 })

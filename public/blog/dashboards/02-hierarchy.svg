@@ -1,0 +1,70 @@
+<svg viewBox="0 0 880 470" xmlns="http://www.w3.org/2000/svg" role="img" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <title>The hierarchy: the List Builder task is the engine, the dashboard is the fundamental unit, and widgets are rendering props on top</title>
+  <desc>Three stacked layers. Bottom: the List Builder task holds the data. Middle: the dashboard owns scope, runs, slicers and drill-through. Top: widgets are thin render slots, each a question plus a display instruction.</desc>
+
+  <rect x="1" y="1" width="878" height="468" rx="16" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+
+  <!-- ===== WIDGETS (top) ===== -->
+  <text x="40" y="44" font-size="11" font-weight="700" letter-spacing="1.2" fill="#888888">WIDGETS<tspan fill="#555555" font-weight="500" letter-spacing="0">  ·  rendering props &#8212; a question + how to draw the answer</tspan></text>
+  <g>
+    <rect x="40" y="56" width="186" height="62" rx="10" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+    <rect x="232" y="56" width="186" height="62" rx="10" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+    <rect x="424" y="56" width="186" height="62" rx="10" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+    <rect x="616" y="56" width="186" height="62" rx="10" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  </g>
+  <g fill="#cccccc" font-size="12">
+    <text x="58" y="82">Donut</text><text x="250" y="82">Split-stat</text><text x="442" y="82">Metric</text><text x="634" y="82">Table</text>
+  </g>
+  <g fill="#666666" font-size="10">
+    <text x="58" y="102">question &#8594; render</text><text x="250" y="102">question &#8594; render</text>
+    <text x="442" y="102">question &#8594; render</text><text x="634" y="102">question &#8594; render</text>
+  </g>
+
+  <!-- connectors widgets -> dashboard -->
+  <g stroke="#3a3a3a" stroke-width="1.5" fill="none">
+    <path d="M 133 118 l 0 28"/><path d="M 325 118 l 0 28"/><path d="M 517 118 l 0 28"/><path d="M 709 118 l 0 28"/>
+  </g>
+  <text x="430" y="138" text-anchor="middle" font-size="10" fill="#666666">dock as slots on</text>
+
+  <!-- ===== DASHBOARD (middle, hero) ===== -->
+  <text x="40" y="170" font-size="11" font-weight="700" letter-spacing="1.2" fill="#CDFF52">DASHBOARD<tspan fill="#888888" font-weight="500" letter-spacing="0">  ·  the fundamental unit &#8212; owns scope, runs &amp; state</tspan></text>
+  <rect x="40" y="180" width="800" height="118" rx="12" fill="rgba(205,255,82,0.05)" stroke="rgba(205,255,82,0.45)"/>
+  <!-- slot outlines -->
+  <g stroke="rgba(205,255,82,0.30)" fill="rgba(205,255,82,0.03)" stroke-dasharray="4 4">
+    <rect x="58" y="198" width="170" height="40" rx="8"/>
+    <rect x="250" y="198" width="170" height="40" rx="8"/>
+    <rect x="442" y="198" width="170" height="40" rx="8"/>
+    <rect x="634" y="198" width="170" height="40" rx="8"/>
+  </g>
+  <g fill="#777777" font-size="10" text-anchor="middle">
+    <text x="143" y="222">slot</text><text x="335" y="222">slot</text><text x="527" y="222">slot</text><text x="719" y="222">slot</text>
+  </g>
+  <!-- capability pills -->
+  <g font-size="11" font-weight="600">
+    <rect x="58" y="256" width="78" height="24" rx="12" fill="rgba(205,255,82,0.10)" stroke="rgba(205,255,82,0.30)"/><text x="97" y="272" text-anchor="middle" fill="#CDFF52">scope</text>
+    <rect x="146" y="256" width="70" height="24" rx="12" fill="rgba(205,255,82,0.10)" stroke="rgba(205,255,82,0.30)"/><text x="181" y="272" text-anchor="middle" fill="#CDFF52">runs</text>
+    <rect x="226" y="256" width="84" height="24" rx="12" fill="rgba(205,255,82,0.10)" stroke="rgba(205,255,82,0.30)"/><text x="268" y="272" text-anchor="middle" fill="#CDFF52">slicers</text>
+    <rect x="320" y="256" width="116" height="24" rx="12" fill="rgba(205,255,82,0.10)" stroke="rgba(205,255,82,0.30)"/><text x="378" y="272" text-anchor="middle" fill="#CDFF52">drill-through</text>
+    <rect x="446" y="256" width="96" height="24" rx="12" fill="rgba(205,255,82,0.10)" stroke="rgba(205,255,82,0.30)"/><text x="494" y="272" text-anchor="middle" fill="#CDFF52">PPT export</text>
+  </g>
+
+  <!-- connector dashboard -> task -->
+  <g stroke="#3a3a3a" stroke-width="1.5" fill="none"><path d="M 440 298 l 0 30"/></g>
+  <path d="M 440 328 l -4 -7 l 8 0 z" fill="#3a3a3a"/>
+  <text x="452" y="318" font-size="10" fill="#666666">sits on &amp; reads</text>
+
+  <!-- ===== TASK (bottom) ===== -->
+  <text x="40" y="352" font-size="11" font-weight="700" letter-spacing="1.2" fill="#888888">TASK<tspan fill="#555555" font-weight="500" letter-spacing="0">  ·  the List Builder &#8212; a spreadsheet you talk to, holding the data</tspan></text>
+  <rect x="40" y="362" width="800" height="86" rx="12" fill="#141414" stroke="rgba(255,255,255,0.08)"/>
+  <!-- grid motif -->
+  <g transform="translate(58,376)">
+    <rect x="0" y="0" width="220" height="58" rx="6" fill="#0d0d0d" stroke="rgba(255,255,255,0.10)"/>
+    <line x1="0" y1="19" x2="220" y2="19" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="0" y1="38" x2="220" y2="38" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="55" y1="0" x2="55" y2="58" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="110" y1="0" x2="110" y2="58" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="165" y1="0" x2="165" y2="58" stroke="rgba(255,255,255,0.07)"/>
+  </g>
+  <text x="298" y="400" font-size="12.5" fill="#cccccc">Rows &amp; columns, filled and reshaped by talking to it.</text>
+  <text x="298" y="420" font-size="11.5" fill="#777777">Each working session is a conversation; the dashboard runs against one.</text>
+</svg>

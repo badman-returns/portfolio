@@ -1,0 +1,98 @@
+<svg viewBox="0 0 880 440" xmlns="http://www.w3.org/2000/svg" role="img" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <title>Before and after: from digging through a full data task to seeing the answer at a glance</title>
+  <desc>Left: a four-step loop of opening a task, scrolling a large grid, hunting for one signal, and backing out, repeated every visit. Right: a dashboard surface showing the key signals immediately.</desc>
+
+  <rect x="1" y="1" width="878" height="438" rx="16" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+
+  <rect x="36" y="32" width="84" height="24" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)"/>
+  <text x="78" y="48" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="1.2" fill="#888888">BEFORE</text>
+  <text x="132" y="48" font-size="13.5" font-weight="600" fill="#fafafa">Dig in every single time</text>
+
+  <path d="M 60 248 C 26 248 26 108 52 103" fill="none" stroke="#3a3a3a" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <path d="M 52 103 l 7 -5 l -1 9 z" fill="#3a3a3a"/>
+  <text x="22" y="180" font-size="10.5" font-weight="600" fill="#666666" transform="rotate(-90 22 180)">every visit</text>
+
+  <rect x="74" y="84" width="296" height="38" rx="9" fill="#141414" stroke="rgba(255,255,255,0.08)"/>
+  <circle cx="96" cy="103" r="11" fill="rgba(255,255,255,0.06)"/>
+  <text x="96" y="107" text-anchor="middle" font-size="11" font-weight="700" fill="#aaaaaa">1</text>
+  <text x="118" y="108" font-size="13" fill="#cccccc">Open the task</text>
+
+  <rect x="74" y="138" width="296" height="38" rx="9" fill="#141414" stroke="rgba(255,255,255,0.08)"/>
+  <circle cx="96" cy="157" r="11" fill="rgba(255,255,255,0.06)"/>
+  <text x="96" y="161" text-anchor="middle" font-size="11" font-weight="700" fill="#aaaaaa">2</text>
+  <text x="118" y="162" font-size="13" fill="#cccccc">Scroll the full grid</text>
+
+  <rect x="74" y="192" width="296" height="38" rx="9" fill="#141414" stroke="rgba(255,255,255,0.08)"/>
+  <circle cx="96" cy="211" r="11" fill="rgba(255,255,255,0.06)"/>
+  <text x="96" y="215" text-anchor="middle" font-size="11" font-weight="700" fill="#aaaaaa">3</text>
+  <text x="118" y="216" font-size="13" fill="#cccccc">Hunt for one signal</text>
+
+  <rect x="74" y="246" width="296" height="38" rx="9" fill="#141414" stroke="rgba(255,255,255,0.08)"/>
+  <circle cx="96" cy="265" r="11" fill="rgba(255,255,255,0.06)"/>
+  <text x="96" y="269" text-anchor="middle" font-size="11" font-weight="700" fill="#aaaaaa">4</text>
+  <text x="118" y="270" font-size="13" fill="#cccccc">Back out &#8212; and repeat</text>
+
+  <g stroke="#3a3a3a" stroke-width="1.5" fill="none">
+    <path d="M 222 122 l 0 12"/><path d="M 222 176 l 0 12"/><path d="M 222 230 l 0 12"/>
+  </g>
+  <g fill="#3a3a3a">
+    <path d="M 222 136 l -4 -6 l 8 0 z"/><path d="M 222 190 l -4 -6 l 8 0 z"/><path d="M 222 244 l -4 -6 l 8 0 z"/>
+  </g>
+
+  <g transform="translate(306,148)">
+    <rect x="0" y="0" width="56" height="72" rx="5" fill="#0d0d0d" stroke="rgba(255,255,255,0.10)"/>
+    <line x1="0" y1="18" x2="56" y2="18" stroke="rgba(255,255,255,0.06)"/>
+    <line x1="0" y1="36" x2="56" y2="36" stroke="rgba(255,255,255,0.06)"/>
+    <line x1="0" y1="54" x2="56" y2="54" stroke="rgba(255,255,255,0.06)"/>
+    <line x1="28" y1="0" x2="28" y2="72" stroke="rgba(255,255,255,0.06)"/>
+    <rect x="29" y="37" width="26" height="16" rx="3" fill="rgba(205,255,82,0.18)" stroke="#CDFF52"/>
+  </g>
+  <text x="334" y="238" text-anchor="middle" font-size="9.5" fill="#666666">buried</text>
+
+  <text x="74" y="320" font-size="12.5" fill="#888888">The one number you need is buried in everything else.</text>
+
+  <line x1="440" y1="38" x2="440" y2="404" stroke="rgba(255,255,255,0.08)"/>
+  <circle cx="440" cy="228" r="18" fill="#0d0d0d" stroke="rgba(255,255,255,0.12)"/>
+  <path d="M 432 228 l 12 0 m -5 -5 l 5 5 l -5 5" fill="none" stroke="#CDFF52" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="474" y="32" width="74" height="24" rx="12" fill="rgba(205,255,82,0.10)" stroke="rgba(205,255,82,0.35)"/>
+  <text x="511" y="48" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="1.2" fill="#CDFF52">AFTER</text>
+  <text x="560" y="48" font-size="13.5" font-weight="600" fill="#fafafa">See it at a glance</text>
+
+  <rect x="474" y="76" width="370" height="248" rx="12" fill="#141414" stroke="rgba(205,255,82,0.30)"/>
+  <rect x="474" y="76" width="370" height="40" rx="12" fill="rgba(205,255,82,0.06)"/>
+  <rect x="474" y="104" width="370" height="12" fill="#141414"/>
+  <circle cx="494" cy="96" r="6" fill="rgba(205,255,82,0.35)"/>
+  <rect x="508" y="90" width="120" height="7" rx="3.5" fill="#3a3a3a"/>
+  <rect x="752" y="88" width="72" height="18" rx="9" fill="#CDFF52"/>
+  <text x="788" y="101" text-anchor="middle" font-size="10" font-weight="700" fill="#0d0d0d">Run</text>
+
+  <rect x="490" y="132" width="166" height="86" rx="9" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+  <rect x="504" y="144" width="70" height="7" rx="3.5" fill="#3a3a3a"/>
+  <g transform="translate(612,180)">
+    <circle r="24" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="9"/>
+    <path d="M 0 -24 A 24 24 0 1 1 -20.8 12" fill="none" stroke="#CDFF52" stroke-width="9" stroke-linecap="round"/>
+    <text y="4" text-anchor="middle" font-size="13" font-weight="700" fill="#fafafa">82%</text>
+  </g>
+
+  <rect x="666" y="132" width="160" height="40" rx="9" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+  <rect x="680" y="144" width="56" height="6" rx="3" fill="#3a3a3a"/>
+  <text x="680" y="164" font-size="14" font-weight="700" fill="#CDFF52">Favorable</text>
+
+  <rect x="666" y="178" width="160" height="40" rx="9" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+  <rect x="680" y="190" width="44" height="6" rx="3" fill="#3a3a3a"/>
+  <text x="680" y="210" font-size="14" font-weight="700" fill="#fafafa">Proceed</text>
+
+  <rect x="490" y="230" width="336" height="80" rx="9" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+  <rect x="504" y="242" width="80" height="6" rx="3" fill="#3a3a3a"/>
+  <g stroke="rgba(255,255,255,0.06)">
+    <line x1="504" y1="264" x2="812" y2="264"/>
+    <line x1="504" y1="284" x2="812" y2="284"/>
+  </g>
+  <g fill="#2a2a2a">
+    <rect x="504" y="270" width="120" height="6" rx="3"/><rect x="676" y="270" width="80" height="6" rx="3"/>
+    <rect x="504" y="290" width="150" height="6" rx="3"/><rect x="676" y="290" width="60" height="6" rx="3"/>
+  </g>
+
+  <text x="474" y="352" font-size="12.5" fill="#888888">The answer is the first thing you see &#8212; full detail one click away.</text>
+</svg>

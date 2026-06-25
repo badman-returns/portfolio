@@ -52,6 +52,23 @@ export const portableTextComponents = {
       />
     ),
 
+    // Diagram — references a static asset in /public (e.g. an inline SVG)
+    diagram: ({value}) => (
+      <figure className="my-8">
+        <img
+          src={value.src}
+          alt={value.alt || ''}
+          className="w-full rounded-xl border border-[var(--surface-border)]"
+          loading="lazy"
+        />
+        {value.caption ? (
+          <figcaption className="mt-3 text-center text-sm text-[var(--muted)]">
+            {value.caption}
+          </figcaption>
+        ) : null}
+      </figure>
+    ),
+
     code: ({value}) => (
       <SyntaxHighlighter
         language={resolveLanguage(value?.language)}

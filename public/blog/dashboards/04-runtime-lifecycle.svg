@@ -1,0 +1,83 @@
+<svg viewBox="0 0 880 480" xmlns="http://www.w3.org/2000/svg" role="img" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <title>Two phases: a builder configures a scoped dashboard template once, then at runtime it spawns, runs, polls, and moves each widget through waiting, running, done or failed states</title>
+  <desc>Top: a dashboard template with widget slots, scoped at task, project or project type, where more specific scope wins. Bottom: the runtime spawns the dashboard, runs it, and polls until all widgets settle; widget statuses go waiting, running, done or failed, with a badge for tiles from a different run.</desc>
+
+  <rect x="1" y="1" width="878" height="478" rx="16" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+
+  <!-- ===== CONFIGURE ===== -->
+  <text x="40" y="44" font-size="11" font-weight="700" letter-spacing="1.2" fill="#888888">CONFIGURE ONCE<tspan fill="#555555" font-weight="500" letter-spacing="0">  ·  a builder assembles a template &#8212; no code, no deploy</tspan></text>
+
+  <!-- template card -->
+  <rect x="40" y="60" width="346" height="150" rx="11" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  <text x="60" y="86" font-size="12.5" font-weight="600" fill="#fafafa">Dashboard template</text>
+  <g>
+    <rect x="60" y="98" width="306" height="30" rx="7" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+    <text x="72" y="117" font-size="11" fill="#bbbbbb">slot &#8212; central question + how to render</text>
+    <rect x="60" y="134" width="306" height="30" rx="7" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+    <text x="72" y="153" font-size="11" fill="#bbbbbb">slot &#8212; central question + how to render</text>
+    <rect x="60" y="170" width="306" height="30" rx="7" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+    <text x="72" y="189" font-size="11" fill="#bbbbbb">slot &#8212; central question + how to render</text>
+  </g>
+
+  <!-- scope nested -->
+  <text x="470" y="78" font-size="11" font-weight="600" fill="#888888">SCOPE &#8212; more specific wins</text>
+  <rect x="470" y="88" width="350" height="122" rx="11" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.12)"/>
+  <text x="484" y="106" font-size="11" fill="#888888">Project type</text>
+  <rect x="498" y="114" width="308" height="84" rx="9" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.16)"/>
+  <text x="512" y="132" font-size="11" fill="#aaaaaa">Project</text>
+  <rect x="526" y="140" width="266" height="48" rx="8" fill="rgba(205,255,82,0.07)" stroke="rgba(205,255,82,0.45)"/>
+  <text x="540" y="169" font-size="12" font-weight="600" fill="#CDFF52">Task  &#9733;</text>
+  <text x="660" y="169" font-size="10.5" fill="#9bbf4e" text-anchor="middle">overrides the levels above</text>
+
+  <!-- divider -->
+  <line x1="40" y1="240" x2="840" y2="240" stroke="rgba(255,255,255,0.07)"/>
+
+  <!-- ===== RUNTIME ===== -->
+  <text x="40" y="276" font-size="11" font-weight="700" letter-spacing="1.2" fill="#CDFF52">RUNTIME<tspan fill="#888888" font-weight="500" letter-spacing="0">  ·  the dashboard comes alive, per task</tspan></text>
+
+  <!-- process row -->
+  <g>
+    <rect x="40" y="294" width="196" height="56" rx="10" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+    <text x="138" y="320" text-anchor="middle" font-size="12.5" font-weight="600" fill="#fafafa">Spawn</text>
+    <text x="138" y="337" text-anchor="middle" font-size="10.5" fill="#777777">per task</text>
+
+    <rect x="266" y="294" width="196" height="56" rx="10" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+    <text x="364" y="320" text-anchor="middle" font-size="12.5" font-weight="600" fill="#fafafa">Run</text>
+    <text x="364" y="337" text-anchor="middle" font-size="10.5" fill="#777777">whole dashboard or one widget</text>
+
+    <rect x="492" y="294" width="196" height="56" rx="10" fill="rgba(205,255,82,0.06)" stroke="rgba(205,255,82,0.40)"/>
+    <text x="590" y="320" text-anchor="middle" font-size="12.5" font-weight="600" fill="#fafafa">Poll</text>
+    <text x="590" y="337" text-anchor="middle" font-size="10.5" fill="#9bbf4e">until everything settles, then stop</text>
+  </g>
+  <g stroke="#3a3a3a" stroke-width="1.6" fill="none">
+    <path d="M 236 322 l 24 0"/><path d="M 462 322 l 24 0"/>
+  </g>
+  <g fill="#3a3a3a"><path d="M 260 322 l -7 -4 l 0 8 z"/><path d="M 486 322 l -7 -4 l 0 8 z"/></g>
+  <!-- poll self loop -->
+  <path d="M 690 308 c 34 -6 34 34 0 28" fill="none" stroke="#CDFF52" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <path d="M 690 340 l 8 -3 l -2 8 z" fill="#CDFF52"/>
+
+  <!-- lifecycle strip -->
+  <text x="40" y="392" font-size="11" font-weight="600" fill="#888888">WIDGET STATUS</text>
+  <g font-size="11.5" font-weight="600">
+    <rect x="40" y="404" width="120" height="34" rx="9" fill="#141414" stroke="rgba(255,255,255,0.12)"/>
+    <text x="100" y="426" text-anchor="middle" fill="#aaaaaa">Waiting</text>
+    <rect x="196" y="404" width="120" height="34" rx="9" fill="rgba(205,255,82,0.05)" stroke="rgba(205,255,82,0.45)"/>
+    <text x="256" y="426" text-anchor="middle" fill="#CDFF52">Running</text>
+    <rect x="352" y="404" width="120" height="34" rx="9" fill="#CDFF52"/>
+    <text x="412" y="426" text-anchor="middle" fill="#0d0d0d">Done</text>
+    <rect x="508" y="404" width="120" height="34" rx="9" fill="rgba(240,120,120,0.08)" stroke="rgba(240,120,120,0.45)"/>
+    <text x="568" y="426" text-anchor="middle" fill="#e98c8c">Failed</text>
+  </g>
+  <g stroke="#3a3a3a" stroke-width="1.6" fill="none">
+    <path d="M 160 421 l 30 0"/><path d="M 316 421 l 30 0"/>
+  </g>
+  <g fill="#3a3a3a"><path d="M 190 421 l -7 -4 l 0 8 z"/><path d="M 346 421 l -7 -4 l 0 8 z"/></g>
+  <path d="M 472 421 l 30 0" stroke="rgba(240,120,120,0.5)" stroke-width="1.6" fill="none"/>
+  <path d="M 502 421 l -7 -4 l 0 8 z" fill="rgba(240,120,120,0.6)"/>
+
+  <!-- different-run badge -->
+  <rect x="664" y="404" width="156" height="34" rx="9" fill="rgba(255,200,80,0.07)" stroke="rgba(255,200,80,0.40)"/>
+  <text x="680" y="425" font-size="13" fill="#e7b84a">&#9873;</text>
+  <text x="696" y="425" font-size="11" fill="#cbb06a">different-run badge</text>
+</svg>

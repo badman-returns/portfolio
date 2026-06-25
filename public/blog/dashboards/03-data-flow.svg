@@ -1,0 +1,58 @@
+<svg viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" role="img" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <title>What the dashboard consumes: it runs against a conversation's grid, filters it with slicers, renders summarized widgets, and drills back through to the underlying rows</title>
+  <desc>A left to right flow from conversation and grid, to a dashboard run, to a slicer filter, to rendered widgets, with a return arrow showing drill-through back into the grid rows.</desc>
+
+  <rect x="1" y="1" width="878" height="398" rx="16" fill="#0d0d0d" stroke="rgba(255,255,255,0.08)"/>
+  <text x="40" y="46" font-size="11" font-weight="700" letter-spacing="1.2" fill="#888888">WHAT THE DASHBOARD CONSUMES<tspan fill="#555555" font-weight="500" letter-spacing="0">  ·  summary on top, full truth one click beneath</tspan></text>
+
+  <!-- N1 conversation + grid -->
+  <rect x="40" y="118" width="170" height="116" rx="11" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  <g transform="translate(64,140)">
+    <rect x="0" y="0" width="122" height="44" rx="5" fill="#0d0d0d" stroke="rgba(255,255,255,0.10)"/>
+    <line x1="0" y1="15" x2="122" y2="15" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="0" y1="30" x2="122" y2="30" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="40" y1="0" x2="40" y2="44" stroke="rgba(255,255,255,0.07)"/>
+    <line x1="81" y1="0" x2="81" y2="44" stroke="rgba(255,255,255,0.07)"/>
+  </g>
+  <text x="125" y="206" text-anchor="middle" font-size="12.5" font-weight="600" fill="#fafafa">Conversation + grid</text>
+  <text x="125" y="223" text-anchor="middle" font-size="10.5" fill="#777777">the List Builder</text>
+
+  <!-- N2 dashboard run (lime) -->
+  <rect x="243" y="118" width="170" height="116" rx="11" fill="rgba(205,255,82,0.06)" stroke="rgba(205,255,82,0.45)"/>
+  <circle cx="328" cy="158" r="17" fill="none" stroke="#CDFF52" stroke-width="1.6"/>
+  <path d="M 323 150 l 11 8 l -11 8 z" fill="#CDFF52"/>
+  <text x="328" y="206" text-anchor="middle" font-size="12.5" font-weight="600" fill="#fafafa">Dashboard run</text>
+  <text x="328" y="223" text-anchor="middle" font-size="10.5" fill="#9bbf4e">against one conversation</text>
+
+  <!-- N3 slicer -->
+  <rect x="446" y="118" width="170" height="116" rx="11" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  <g transform="translate(509,142)" stroke="#cccccc" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 0 0 l 44 0 l -16 19 l 0 16 l -12 6 l 0 -22 z"/>
+  </g>
+  <text x="531" y="206" text-anchor="middle" font-size="12.5" font-weight="600" fill="#fafafa">Slicer filter</text>
+  <text x="531" y="223" text-anchor="middle" font-size="10.5" fill="#777777">by sheet / column</text>
+
+  <!-- N4 widgets render -->
+  <rect x="649" y="118" width="170" height="116" rx="11" fill="#141414" stroke="rgba(255,255,255,0.10)"/>
+  <g transform="translate(669,140)">
+    <circle cx="20" cy="22" r="16" fill="none" stroke="#CDFF52" stroke-width="6"/>
+    <path d="M 20 6 A 16 16 0 0 1 34 30" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="6"/>
+    <rect x="52" y="6" width="78" height="14" rx="4" fill="#0d0d0d" stroke="rgba(255,255,255,0.10)"/>
+    <rect x="52" y="26" width="78" height="14" rx="4" fill="#0d0d0d" stroke="rgba(255,255,255,0.10)"/>
+  </g>
+  <text x="734" y="206" text-anchor="middle" font-size="12.5" font-weight="600" fill="#fafafa">Widgets render</text>
+  <text x="734" y="223" text-anchor="middle" font-size="10.5" fill="#777777">summary on the surface</text>
+
+  <!-- forward arrows -->
+  <g stroke="#3a3a3a" stroke-width="1.6" fill="none">
+    <path d="M 210 176 l 25 0"/><path d="M 413 176 l 25 0"/><path d="M 616 176 l 25 0"/>
+  </g>
+  <g fill="#3a3a3a">
+    <path d="M 235 176 l -7 -4 l 0 8 z"/><path d="M 438 176 l -7 -4 l 0 8 z"/><path d="M 641 176 l -7 -4 l 0 8 z"/>
+  </g>
+
+  <!-- drill-through return arc -->
+  <path d="M 734 234 C 734 320 125 320 125 240" fill="none" stroke="#CDFF52" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <path d="M 125 244 l -4 -8 l 8 0 z" fill="#CDFF52"/>
+  <text x="430" y="312" text-anchor="middle" font-size="11.5" font-weight="600" fill="#CDFF52">drill-through &#8212; back to the rows behind the number</text>
+</svg>
