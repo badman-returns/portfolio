@@ -1,6 +1,47 @@
 export default function HomeExperience() {
   const experiences = [
     {
+      company: "Agentic Private Markets",
+      role: "Senior Software Engineer (Lead Engineer)",
+      domain: "AI due-diligence platform",
+      gradient: "from-[#CDFF52] to-[#a3e635]",
+      summary:
+        "Lead engineer on an AI due-diligence platform. I build the layer between the models and the people who use them — voice and text agents, streaming agent chat, MCP tools, LLM cost control, and the React library that renders model output.",
+      highlights: [
+        "Built live voice and text interview agents over WebSocket, with server interrupts and a reconnect policy per close code.",
+        "Built streaming agent chat on an SSE event stream with token renewal and resume from the last event id.",
+        <>Generated <strong>65</strong> MCP tool definitions from the component library so agents render charts and tables through tool calls.</>,
+        "Built the per-user LLM usage report and per-model MCP tool cost with the prompt-cache read/write split.",
+        <>Published a <strong>65-component</strong> React 19 library for AI-generated output and migrated a 1,500-file product onto it with no feature freeze.</>,
+      ],
+    },
+    {
+      company: "DilSayCare",
+      role: "Technical Advisor (AI and Platform)",
+      domain: "AI mental-health platform · part-time",
+      gradient: "from-[#CDFF52] to-[#a3e635]",
+      summary:
+        "Advised an AI mental-health platform across architecture, backend, clients, and AI, and built large parts of it.",
+      highlights: [
+        "Co-designed the MoM clinical-notes pipeline under a provisional patent application: ICD-11 coding via hybrid RAG + BPE scoring and routing between two small language models.",
+        <>Built the backend on Node.js, Express, Knex, and PostgreSQL — <strong>150+</strong> REST endpoints, JWT with OTP sign-in, Razorpay payments, race-safe scheduling.</>,
+        "Built the React 19 web client, a Refine admin dashboard, and the Expo mobile app.",
+        "Deployed the observability stack: OpenTelemetry, Prometheus, Grafana, Loki, and Tempo.",
+      ],
+    },
+    {
+      company: "Freelance (2026)",
+      role: "Software Engineer",
+      domain: "Two client builds · part-time",
+      gradient: "from-[#CDFF52] to-[#a3e635]",
+      summary:
+        "Two part-time client builds, each delivered from scaffold to production in about five weeks.",
+      highlights: [
+        <>An offline-first Android app for rural community health workers with on-device face recognition, FHIR sync, Keycloak sign-in, and LiveKit calls — <strong>440</strong> tests.</>,
+        <>BongBrix, a wellness platform for a leading Indian engineering institute — React 19 apps, an Express + Knex API, institute OAuth SSO, and <strong>831</strong> API tests.</>,
+      ],
+    },
+    {
       company: "Delta Exchange",
       role: "Frontend Engineer",
       domain: "Global crypto derivatives platform",
@@ -11,37 +52,22 @@ export default function HomeExperience() {
         <>Led migration of <strong>500k+</strong> existing users to the India-specific platform with geo-based routing and compliance gating.</>,
         <>Built location-aware onboarding routing <strong>600k+</strong> new sign-ups across platforms based on jurisdiction.</>,
         <>Designed trading analytics dashboards for <strong>100k+</strong> active traders, optimized for frequent data updates.</>,
-        "Debugged production-only issues caused by rendering loops, unstable references, and state churn under real market load.",
+        "Cut trade-page memory from 1GB+ to 400MB and the Sentry bundle from 400KB to 70KB gzipped.",
         "Collaborated with backend and compliance teams to ensure correctness under regulatory constraints.",
       ],
     },
     {
-      company: "DilSayCare",
-      role: "Founder & Engineer",
-      domain: "Mental health platform",
-      gradient: "from-[#CDFF52] to-[#a3e635]",
-      summary:
-        "Built an AI-assisted mental health platform from scratch, owning frontend architecture, backend systems, infrastructure, and product flows.",
-      highlights: [
-        "Designed chat-based assessments that behave like stateful conversations rather than static forms.",
-        "Implemented real-time WebSocket flows for assessments, follow-ups, and session booking.",
-        "Architected backend with Node.js, PostgreSQL, and Redis with strong correctness guarantees.",
-        "Designed slot-based scheduling logic supporting both online and offline sessions.",
-        "Focused on failure handling — dropped connections, partial submissions, retries, and reconnection.",
-      ],
-    },
-    {
       company: "Grapevine",
-      role: "Frontend Engineer",
+      role: "Founding Engineer",
       domain: "Salary insights platform",
       gradient: "from-[#CDFF52] to-[#a3e635]",
       summary:
-        "Worked on a consumer-facing salary insights platform where SEO, performance, and rendering correctness directly impacted growth.",
+        "Set up the engineering team at a consumer-facing salary insights platform where SEO, performance, and rendering correctness directly impacted growth.",
       highlights: [
-        <>Built salary and compensation features used by <strong>20k+</strong> users.</>,
-        <>Improved Core Web Vitals to <strong>sub-1s</strong> FCP and LCP through bundle splitting and SSR tuning.</>,
-        <>Achieved consistent <strong>100</strong> SEO scores across critical landing pages.</>,
-        "Ensured frontend architecture supported SEO-heavy use cases at scale.",
+        <>Built the salary data visualisation product that reached <strong>20k+</strong> users in its first 6 months.</>,
+        <>Brought landing pages to <strong>sub-1s</strong> FCP and LCP.</>,
+        <>Achieved a <strong>100</strong> Lighthouse SEO score on critical landing pages.</>,
+        "Designed the hybrid native + WebView architecture with stateless JWT auth and silent token refresh.",
       ],
     },
     {
@@ -52,9 +78,9 @@ export default function HomeExperience() {
       summary:
         "Early experience working on frontend systems at massive scale, with emphasis on SEO, SSR, and analytics accuracy.",
       highlights: [
-        <>Built SSR and SEO features serving <strong>millions</strong> of monthly users.</>,
-        "Migrated analytics pipelines to improve data correctness and reduce reporting inconsistencies.",
-        "Developed internal SEO tooling adopted by multiple teams.",
+        "Built server-side-rendered ratings-and-reviews widgets and a React web component inside React Native for Google's mobile-first indexing.",
+        "Migrated the 4 core tracking events from Omniture to the Flipkart Data Platform.",
+        <>Built the internal SEO management tool adopted by <strong>5+</strong> business teams.</>,
       ],
     },
   ];
@@ -65,7 +91,7 @@ export default function HomeExperience() {
         <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--accent)]">Career</span>
         <h2 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">Experience</h2>
         <p className="max-w-2xl text-sm text-[var(--muted)] leading-relaxed">
-          Selected roles where I built and debugged long-running frontend systems under real-world constraints.
+          Selected roles where I built and debugged long-running software systems under real-world constraints.
         </p>
       </div>
 

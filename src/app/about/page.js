@@ -3,11 +3,11 @@ import Image from "next/image";
 export const metadata = {
   title: "About Trishnangshu Goswami (Trish)",
   description:
-    "Learn about Trishnangshu Sekhar Goswami (Trish Goswami) — a frontend engineer from Kolkata, India. From sketching and hacking to building production-grade frontend systems.",
+    "Learn about Trishnangshu Sekhar Goswami (Trish Goswami) — a software engineer from Kolkata, India who builds AI products end to end. From sketching and hacking to production systems.",
   openGraph: {
-    title: "About Trish Goswami — Frontend Engineer",
+    title: "About Trish Goswami — Senior Software Engineer",
     description:
-      "The story of Trishnangshu Goswami — from curiosity-driven hacking to building real-time trading and healthcare frontends.",
+      "The story of Trishnangshu Goswami — from curiosity-driven hacking to building AI products, trading platforms, and healthcare systems.",
   },
 };
 
@@ -20,7 +20,7 @@ export default function About() {
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Built, Not Taught</h1>
 
         <p className="text-lg text-[var(--muted)] max-w-2xl">
-          My journey into frontend engineering didn’t follow a conventional path.
+          My journey into software engineering didn’t follow a conventional path.
           It was shaped by curiosity, experimentation, and learning things the
           hard way.
         </p>
@@ -33,7 +33,7 @@ export default function About() {
           <div className="surface p-2 inline-block">
             <Image
               src="/dp.png"
-              alt="Trishnangshu Sekhar Goswami — Trish Goswami — Frontend Engineer"
+              alt="Trishnangshu Sekhar Goswami — Trish Goswami — Senior Software Engineer"
               width={220}
               height={280}
               className="rounded-xl object-cover"
@@ -46,7 +46,7 @@ export default function About() {
         <div className="space-y-5 text-lg leading-relaxed">
           <p>
             I’m <span className="font-medium">Trishnangshu Goswami</span>, a
-            frontend engineer from Kolkata, West Bengal.
+            software engineer from Kolkata, West Bengal.
           </p>
 
           <p className="text-[var(--muted)]">
@@ -102,7 +102,7 @@ export default function About() {
         <p className="text-[var(--muted)] leading-relaxed">
           By my second year, I landed my first full-time role and dropped the
           course entirely. Since then, I’ve been working as a full-time developer
-          for about five years — entirely self-taught, learning through
+          for about seven years — entirely self-taught, learning through
           production systems, mistakes, and real-world constraints.
         </p>
       </section>
@@ -112,17 +112,21 @@ export default function About() {
         <h2 className="section-title">Today</h2>
 
         <p className="leading-relaxed">
-          Most recently I was a Frontend Engineer at Delta Exchange, where I
-          worked on a real-time trading platform serving hundreds of thousands
-          of active traders. Currently, I&apos;m building DilSayCare — an
-          AI-assisted mental health platform — from the ground up.
+          Today I&apos;m the lead engineer at Agentic Private Markets, an AI
+          due-diligence platform, where I build AI products end to end — voice and
+          text agents, streaming agent chat, MCP tools, LLM cost control, and the
+          React layer that renders model output. Before that I was a Frontend
+          Engineer at Delta Exchange, on a real-time trading platform serving
+          hundreds of thousands of active traders. On the side I advise DilSayCare,
+          an AI-assisted mental health platform, on its architecture, backend, and AI.
         </p>
 
         <p className="text-[var(--muted)] leading-relaxed">
-          While frontend is my core specialization, I actively build across the
-          stack — backend systems with Node.js and PostgreSQL, mobile apps with
-          React Native and Expo, and infrastructure with Docker and
-          observability tooling.
+          I work across the whole stack — PostgreSQL schemas and Node.js APIs,
+          Python for speech and ML pipelines, React and React Native clients,
+          on-device ML in Kotlin, and infrastructure with Docker and
+          observability tooling. Most of my recent work sits between a model and
+          the people who use it.
         </p>
       </section>
 

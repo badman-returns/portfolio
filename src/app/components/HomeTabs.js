@@ -7,7 +7,7 @@ export default function HomeTabs() {
       <div className="space-y-3">
         <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--accent)]">Career narrative</span>
         <p className="max-w-2xl text-sm text-[var(--muted)] leading-relaxed">
-          A linear walkthrough: how I think about frontend systems, then where I applied those ideas in production.
+          A linear walkthrough: how I think about software systems, then where I applied those ideas in production.
         </p>
       </div>
 
