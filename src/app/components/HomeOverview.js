@@ -20,8 +20,8 @@ const workItems = [
     text: "Options analytics page crashing for 15% of users. Root cause: unbounded state growth in chart re-renders under sustained market data updates.",
   },
   {
-    title: "Cross-platform consistency at scale",
-    text: "Built a design system using Amazon Style Dictionary with custom transforms, adopted 100% across React Native and web teams, cutting design-to-code drift by 60%.",
+    title: "A grid that a user and an LLM edit at the same time",
+    text: "An LLM-edited spreadsheet kept switching to the wrong sheet under concurrent edits. Fixed with sequence-based optimistic concurrency, 409 recovery, and debounced SSE reconciliation.",
   },
 ];
 
@@ -38,21 +38,21 @@ const skills = [
   },
   {
     title: "Backend & Infra",
-    items: ["Node.js", "Express", "PostgreSQL", "Redis", "WebSockets", "Socket.IO", "Docker", "GCP"],
+    items: ["Node.js", "Express", "Python", "PostgreSQL", "Redis", "WebSockets", "SSE", "Docker"],
     gradient: "from-[#CDFF52] to-[#a3e635]",
   },
   {
-    title: "Tooling & Monitoring",
-    items: ["Vite", "Webpack", "Sentry", "Apache ECharts", "Recharts"],
+    title: "AI & Monitoring",
+    items: ["Model Context Protocol", "LLM streaming", "Web Audio", "Whisper", "Claude Code", "Sentry", "OpenTelemetry"],
     gradient: "from-[#CDFF52] to-[#a3e635]",
   },
 ];
 
 const currentFocus = [
-  "Shipping a mental health platform to production users",
-  "Writing deep technical essays on frontend failure modes",
-  "Building cross-platform React Native experiences",
-  "Exploring WebSocket reliability under unstable networks",
+  "Building voice agents, streaming agent chat and MCP tools at Agentic Private Markets",
+  "Building watchkeeper, a read-only viewer for the work of coding agents",
+  "Writing essays on AI product engineering and production debugging",
+  "Exploring WebSocket and SSE reliability under unstable networks",
 ];
 
 export default function HomeOverview() {
@@ -270,7 +270,7 @@ export default function HomeOverview() {
             <blockquote data-quote className="relative pl-6" style={{ opacity: 0 }}>
               <span className="absolute left-0 top-0 bottom-0 w-0.5 rounded-full bg-gradient-to-b from-[#CDFF52] to-[#a3e635]" />
               <p className="text-base font-medium leading-relaxed sm:text-lg">
-                Frontend systems are long-running, stateful machines — not just collections of components.
+                Software systems are long-running, stateful machines — not just collections of components.
               </p>
             </blockquote>
 

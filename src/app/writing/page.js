@@ -7,11 +7,11 @@ export const revalidate = 60;
 export const metadata = {
   title: "Writing",
   description:
-    "Essays by Trishnangshu Goswami (Trish) on frontend architecture, production debugging, real-time systems, JavaScript internals, and engineering trade-offs.",
+    "Essays by Trishnangshu Goswami (Trish) on AI product engineering, real-time systems, production debugging, and engineering trade-offs.",
   openGraph: {
     title: "Writing — Trish Goswami",
     description:
-      "Frontend engineering essays — architecture, debugging, and real-time systems.",
+      "Essays on AI product engineering, real-time systems, production debugging and engineering trade-offs.",
   },
 };
 

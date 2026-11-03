@@ -38,9 +38,9 @@ const focusCards = [
     gradient: "from-[#CDFF52] to-[#a3e635]",
   },
   {
-    title: "Performance Architecture",
-    text: "Led geo-based routing and compliance gating for 500K+ existing users and 600K+ new sign-ups across jurisdictions — zero downtime migration.",
-    tag: "Scale",
+    title: "Concurrent Agent Editing",
+    text: "Kept a spreadsheet consistent while a user and an LLM edit it at the same time — sequence-based optimistic concurrency, 409 recovery, and debounced SSE reconciliation.",
+    tag: "AI systems",
     num: "03",
     accent: "#CDFF52",
     accentLight: "#d4ff70",
@@ -79,19 +79,20 @@ export default async function Home() {
                 </h1>
 
                 <p className="mt-2 text-base font-medium text-[var(--muted)] sm:mt-3 sm:text-lg">
-                  Building frontend systems. Debugging where they break.
+                  Building AI products end to end. Debugging where they break.
                 </p>
               </GStaggerItem>
 
               <GStaggerItem className="max-w-xl space-y-4">
                 <p className="text-[15px] leading-7 text-[var(--muted)] sm:text-base sm:leading-relaxed">
-                  I build and debug performance-critical, real-time frontend systems. My
-                  work lives where state, rendering, and correctness collide — trading
-                  platforms, healthcare products, and long-running UIs that fail in non-obvious ways.
+                  I build AI products end to end — from the PostgreSQL schema and the Node.js
+                  API to the React interface that renders model output. Streaming agent chat,
+                  voice agents over WebSocket, MCP tools, LLM cost control, and long-running
+                  UIs that fail in non-obvious ways.
                 </p>
 
                 <p className="text-[15px] leading-7 text-[var(--muted)] sm:text-base sm:leading-relaxed">
-                  I write about frontend engineering the way it actually behaves in production —
+                  I write about these systems the way they actually behave in production —
                   not the way tutorials describe it.
                 </p>
               </GStaggerItem>
@@ -143,7 +144,7 @@ export default async function Home() {
               Technologies I work with
             </p>
             <div className="flex flex-wrap gap-3">
-              {["React", "React Native", "Next.js", "TypeScript", "Node.js", "WebSockets", "Redux", "Tailwind CSS", "Docker"].map((tech) => (
+              {["React", "Next.js", "TypeScript", "Node.js", "PostgreSQL", "Python", "WebSockets", "SSE", "MCP", "Docker"].map((tech) => (
                 <span
                   key={tech}
                   data-pill
